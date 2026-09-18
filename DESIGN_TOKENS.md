@@ -1,0 +1,23 @@
+# CaseFlow 视觉 Token（Miro-inspired）
+
+CaseFlow 使用“白色协作画布 + 蓝色交互 + 低饱和协作色块”的视觉方向，参考 `awesome-design-md` 中的 Miro 设计系统；不复制 Miro 的品牌名称、标志或产品界面。
+
+| Token | 色值 | 用途 |
+|---|---|---|
+| `--ink` | `#1C1C1E` | 标题、主要文字 |
+| `--primary` | `#5B76FE` | 主按钮、链接、选中导航 |
+| `--primary-pressed` | `#2A41B6` | 主按钮悬停/按下 |
+| `--primary-soft` | `#E5EAFF` | 选中背景、悬停背景 |
+| `--teal` | `#C3FAF5` | 协作/进行中信息卡 |
+| `--coral` | `#FFC6C6` | 风险、错误相关信息 |
+| `--rose` | `#FFD8F4` | 待办/辅助信息卡 |
+| `--orange` | `#FFE6CD` | 提示/提醒信息卡 |
+| `--yellow` | `#FFF0A8` | 品牌识别、总览信息卡 |
+| `--success` | `#00B473` | 成功状态 |
+| `--border` | `#C7CAD5` | 描边按钮、输入框 |
+| `--ring` | `rgb(224,226,232) 0 0 0 1px` | 轻量边界，不使用重阴影 |
+
+组件规则：按钮使用 8px 圆角；卡片使用 16px 圆角；优先使用 1px ring 边界和色块对比建立层级，避免厚重阴影。
+
+参考：<https://github.com/HU-UH/awesome-design-md/tree/main/design-md/miro>
+
