@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}系统概览 - CaseFlow{% endblock %}
+{% block content %}
+<div class="topbar">
+    <h2>系统概览</h2>
+    <span class="badge">MVP 基础骨架</span>
+</div>
+<div class="cards">
+    <section class="card"><small>案件总数</small><div class="metric">{{ counts.cases }}</div></section>
+    <section class="card"><small>客户总数</small><div class="metric">{{ counts.clients }}</div></section>
+    <section class="card"><small>未完成待办</small><div class="metric">{{ counts.todos }}</div></section>
+</div>
+<section class="card intro">
+    <h3>第一阶段目标</h3>
+    <p>先把案件、客户和待办三个核心对象跑通，再补充案件时间线、文书模板、风险提醒和数据看板。</p>
+    <p>当前服务状态：<a href="/health">查看健康检查</a>　<a href="/cases">进入案件管理</a></p>
+</section>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}客户管理 - CaseFlow{% endblock %}
+{% block content %}
+<div class="topbar">
+    <h2>客户管理</h2>
+    <button class="primary" onclick="openCreate()">+ 新建客户</button>
+</div>
+<section class="card toolbar">
+    <input id="keyword" placeholder="搜索客户名称、电话或邮箱" oninput="loadClients()">
+</section>
+<section class="card table-card">
+    <div id="empty" class="empty" hidden>暂无客户，请先新建客户档案。</div>
+    <div class="table-wrap"><table><thead><tr><th>客户名称</th><th>类型</th><th>电话</th><th>邮箱</th><th>操作</th></tr></thead><tbody id="clientRows"></tbody></table></div>
+</section>
+<dialog id="clientDialog"><form method="dialog" onsubmit="saveClient(event)">
+    <h3 id="dialogTitle">新建客户</h3><input type="hidden" id="clientId">
+    <label>客户名称<input id="clientName" required placeholder="例如：上海某科技有限公司"></label>
+    <label>客户类型<select id="clientType"><option>个人</option><option>企业</option></select></label>
+    <label>联系电话<input id="clientPhone"></label>
+    <label>邮箱<input id="clientEmail" type="email"></label>
+    <div class="dialog-actions"><button type="button" onclick="clientDialog.close()">取消</button><button class="primary">保存</button></div>
+</form></dialog>
+<style>
+.primary{border:0;border-radius:8px;background:#7f37a2;color:white;padding:11px 16px;cursor:pointer}.toolbar{display:flex;gap:12px;margin-bottom:18px}.toolbar input{flex:1;border:1px solid #ddd;border-radius:8px;padding:11px 12px;font-size:14px}.table-card{overflow:hidden;padding:0}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:650px}th,td{text-align:left;padding:16px 20px;border-bottom:1px solid #eee;font-size:14px}th{color:#777;font-weight:500;background:#faf9fc}.actions button{border:0;background:transparent;color:#6c328b;cursor:pointer;margin-right:10px}.actions .danger{color:#c73b3b}.empty{padding:42px;text-align:center;color:#777}dialog{border:0;border-radius:14px;width:min(500px,calc(100% - 36px));padding:0;box-shadow:0 15px 50px rgba(0,0,0,.22)}dialog::backdrop{background:rgba(32,18,45,.35)}dialog form{padding:26px}dialog h3{margin-top:0}label{display:block;margin:14px 0;font-size:13px;color:#555}label input,label select{box-sizing:border-box;display:block;width:100%;margin-top:6px;border:1px solid #ddd;border-radius:8px;padding:10px;font:inherit}.dialog-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}.dialog-actions button{border:1px solid #ddd;background:white;border-radius:8px;padding:10px 14px;cursor:pointer}.dialog-actions .primary{border:0}
+</style>
+<script>
+const clientDialog=document.getElementById('clientDialog'), clientRows=document.getElementById('clientRows'), empty=document.getElementById('empty');
+async function loadClients(){const response=await fetch('/api/clients?keyword='+encodeURIComponent(document.getElementById('keyword').value));const items=await response.json();empty.hidden=items.length!==0;clientRows.innerHTML=items.map(item=>`<tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.client_type)}</td><td>${escapeHtml(item.phone||'—')}</td><td>${escapeHtml(item.email||'—')}</td><td class="actions"><button onclick='openEdit(${JSON.stringify(item)})'>编辑</button><button class="danger" onclick="removeClient(${item.id})">删除</button></td></tr>`).join('')}
+function openCreate(){document.querySelector('form').reset();document.getElementById('dialogTitle').textContent='新建客户';document.getElementById('clientId').value='';clientDialog.showModal()}
+function openEdit(item){document.getElementById('dialogTitle').textContent='编辑客户';clientId.value=item.id;clientName.value=item.name;clientType.value=item.client_type;clientPhone.value=item.phone||'';clientEmail.value=item.email||'';clientDialog.showModal()}
+async function saveClient(event){event.preventDefault();const id=clientId.value;const payload={name:clientName.value,client_type:clientType.value,phone:clientPhone.value,email:clientEmail.value};const response=await fetch(id?'/api/clients/'+id:'/api/clients',{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const result=await response.json();if(!response.ok)return alert(result.error||'保存失败');clientDialog.close();loadClients()}
+async function removeClient(id){if(!confirm('确定要删除这个客户吗？'))return;const response=await fetch('/api/clients/'+id,{method:'DELETE'});if(!response.ok)return alert('删除失败');loadClients()}
+function escapeHtml(value){return String(value??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}loadClients();
+</script>
+{% endblock %}

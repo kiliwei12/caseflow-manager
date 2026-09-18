@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}案件管理 - CaseFlow{% endblock %}
+{% block content %}
+<div class="topbar">
+    <h2>案件管理</h2>
+    <button class="primary" onclick="openCreate()">+ 新建案件</button>
+</div>
+
+<section class="card toolbar">
+    <input id="keyword" placeholder="搜索案号、案件名称或客户" oninput="loadCases()">
+    <select id="status" onchange="loadCases()">
+        <option value="">全部状态</option>
+        <option>进行中</option>
+        <option>已结案</option>
+        <option>暂停</option>
+    </select>
+</section>
+
+<section class="card table-card">
+    <div id="empty" class="empty" hidden>暂无案件，点击右上角新建第一条案件。</div>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>案号</th><th>案件名称</th><th>类型</th><th>状态</th><th>截止日期</th><th>操作</th></tr></thead>
+            <tbody id="caseRows"></tbody>
+        </table>
+    </div>
+</section>
+
+<dialog id="caseDialog">
+    <form method="dialog" id="caseForm" onsubmit="saveCase(event)">
+        <h3 id="dialogTitle">新建案件</h3>
+        <input type="hidden" id="caseId">
+        <label>案号<input id="caseNumber" required placeholder="例如：(2026)沪0101民初001号"></label>
+        <label>案件名称<input id="caseName" required placeholder="例如：甲公司诉乙公司合同纠纷"></label>
+        <label>案件类型<input id="caseType" required placeholder="例如：合同纠纷"></label>
+        <label>状态<select id="caseStatus"><option>进行中</option><option>已结案</option><option>暂停</option></select></label>
+        <label>关联客户<select id="caseClient"><option value="">未关联客户</option></select></label>
+        <label>下一节点日期<input id="caseDeadline" type="date"></label>
+        <label>案件描述<textarea id="caseDescription" rows="4"></textarea></label>
+        <div class="dialog-actions"><button type="button" onclick="caseDialog.close()">取消</button><button class="primary">保存</button></div>
+    </form>
+</dialog>
+
+<style>
+    .primary { border: 0; border-radius: 8px; background: #7f37a2; color: white; padding: 11px 16px; cursor: pointer; }
+    .toolbar { display: flex; gap: 12px; margin-bottom: 18px; }
+    .toolbar input, .toolbar select { border: 1px solid #ddd; border-radius: 8px; padding: 11px 12px; font-size: 14px; }
+    .toolbar input { flex: 1; }
+    .table-card { overflow: hidden; padding: 0; }
+    .table-wrap { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; min-width: 760px; }
+    th, td { text-align: left; padding: 16px 20px; border-bottom: 1px solid #eee; font-size: 14px; }
+    th { color: #777; font-weight: 500; background: #faf9fc; }
+    .status { display: inline-block; border-radius: 999px; padding: 5px 10px; background: #eee6f7; color: #5d2384; }
+    .actions button { border: 0; background: transparent; color: #6c328b; cursor: pointer; margin-right: 10px; }
+    .actions .danger { color: #c73b3b; }
+    .empty { padding: 42px; text-align: center; color: #777; }
+    dialog { border: 0; border-radius: 14px; width: min(560px, calc(100% - 36px)); padding: 0; box-shadow: 0 15px 50px rgba(0,0,0,.22); }
+    dialog::backdrop { background: rgba(32, 18, 45, .35); }
+    dialog form { padding: 26px; }
+    dialog h3 { margin-top: 0; }
+    label { display: block; margin: 14px 0; font-size: 13px; color: #555; }
+    label input, label select, label textarea { box-sizing: border-box; display: block; width: 100%; margin-top: 6px; border: 1px solid #ddd; border-radius: 8px; padding: 10px; font: inherit; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .dialog-actions button { border: 1px solid #ddd; background: white; border-radius: 8px; padding: 10px 14px; cursor: pointer; }
+    .dialog-actions .primary { border: 0; }
+</style>
+<script>
+const caseDialog = document.getElementById('caseDialog');
+const caseRows = document.getElementById('caseRows');
+const empty = document.getElementById('empty');
+
+let clientOptions = [];
+async function loadClients() {
+    clientOptions = await (await fetch('/api/clients/options')).json();
+    caseClient.innerHTML = '<option value="">未关联客户</option>' + clientOptions.map(x => `<option value="${x.id}">${escapeHtml(x.name)} · ${escapeHtml(x.client_type)}</option>`).join('');
+}
+async function loadCases() {
+    const params = new URLSearchParams({ keyword: document.getElementById('keyword').value, status: document.getElementById('status').value });
+    const response = await fetch('/api/cases?' + params);
+    const cases = await response.json();
+    empty.hidden = cases.length !== 0;
+    caseRows.innerHTML = cases.map(item => `
+        <tr><td>${escapeHtml(item.case_number)}</td><td><a href="/cases/${item.id}">${escapeHtml(item.name)}</a></td><td>${escapeHtml(item.case_type)}</td>
+        <td><span class="status">${escapeHtml(item.status)}</span></td><td>${item.deadline || '—'}</td>
+        <td class="actions"><button onclick='openEdit(${JSON.stringify(item)})'>编辑</button><button class="danger" onclick="removeCase(${item.id})">删除</button></td></tr>`).join('');
+}
+
+function openCreate() {
+    document.getElementById('dialogTitle').textContent = '新建案件';
+    document.getElementById('caseForm').reset();
+    document.getElementById('caseId').value = '';
+    caseDialog.showModal();
+}
+
+function openEdit(item) {
+    document.getElementById('dialogTitle').textContent = '编辑案件';
+    document.getElementById('caseId').value = item.id;
+    document.getElementById('caseNumber').value = item.case_number;
+    document.getElementById('caseName').value = item.name;
+    document.getElementById('caseType').value = item.case_type;
+    document.getElementById('caseStatus').value = item.status;
+    document.getElementById('caseClient').value = item.client_id || '';
+    document.getElementById('caseDeadline').value = item.deadline || '';
+    document.getElementById('caseDescription').value = item.description || '';
+    caseDialog.showModal();
+}
+
+async function saveCase(event) {
+    event.preventDefault();
+    const id = document.getElementById('caseId').value;
+    const payload = { case_number: caseNumber.value, name: caseName.value, case_type: caseType.value, status: caseStatus.value, client_id: caseClient.value, deadline: caseDeadline.value, description: caseDescription.value };
+    const response = await fetch(id ? '/api/cases/' + id : '/api/cases', { method: id ? 'PUT' : 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+    const result = await response.json();
+    if (!response.ok) return alert(result.error || '保存失败');
+    caseDialog.close();
+    loadCases();
+}
+
+async function removeCase(id) {
+    if (!confirm('确定要删除这条案件吗？')) return;
+    const response = await fetch('/api/cases/' + id, { method: 'DELETE' });
+    if (!response.ok) return alert('删除失败');
+    loadCases();
+}
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+}
+
+loadClients().then(loadCases);
+</script>
+{% endblock %}
