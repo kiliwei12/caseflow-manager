@@ -1,6 +1,16 @@
 {% extends "base.html" %}
 {% block title %}文书模板 - CaseFlow{% endblock %}
 {% block content %}
-<div class="topbar"><div><h2>文书模板</h2><div class="topbar-subtitle">将常用工作内容沉淀为可复用模板</div></div><button class="btn btn-accent" onclick="location.href='/cases'">进入案件管理</button></div>
-<section class="card"><div class="section-heading"><h3>模板中心</h3><span class="badge">即将上线</span></div><p style="color:#667085;line-height:1.8;margin-bottom:0">下一阶段将支持起诉状、答辩状、律师函等模板管理，并结合案件字段生成可下载文书。</p></section>
+<div class="topbar"><div><h2>文书模板</h2><div class="topbar-subtitle">将常用工作内容沉淀为可复用模板</div></div><div style="display:flex;gap:8px"><button class="btn btn-outline" id="batchDeleteBtn" style="display:none" onclick="batchDeleteTemplates()">删除选中</button><button class="btn btn-accent" onclick="showTemplateModal()">＋ 新建模板</button></div></div>
+<section class="card template-filters"><button class="btn btn-outline active" onclick="filterTemplates('',this)">全部</button><button class="btn btn-outline" onclick="filterTemplates('起诉状',this)">起诉状</button><button class="btn btn-outline" onclick="filterTemplates('答辩状',this)">答辩状</button><button class="btn btn-outline" onclick="filterTemplates('律师函',this)">律师函</button><button class="btn btn-outline" onclick="filterTemplates('合同',this)">合同</button><button class="btn btn-outline" onclick="filterTemplates('常用法院文书',this)">常用法院文书</button><button class="btn btn-outline" onclick="filterTemplates('备忘录',this)">备忘录</button></section>
+<section class="card"><div class="section-heading"><h3>模板中心</h3><span class="badge">模板管理</span></div><p id="templateHint" style="color:#667085;line-height:1.8;margin-bottom:0">选择上方分类查看模板。下一阶段将支持 Word/PDF 上传、预览和一键生成。</p><div id="templateCards" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"></div></section>
+<dialog id="templateDialog"><form method="dialog" onsubmit="saveTemplate(event)"><h3>新建文书模板</h3><label>模板名称<input id="templateName" required placeholder="例如：民事起诉状"></label><label>模板分类<select id="templateCategory"><option>起诉状</option><option>答辩状</option><option>律师函</option><option>合同</option><option>常用法院文书</option><option>备忘录</option></select></label><label>模板文件<div class="btn btn-outline" onclick="document.getElementById('tpl-file-input').click()">上传 Word/PDF 文件</div><input id="tpl-file-input" type="file" accept=".docx,.pdf" hidden></label><div style="display:flex;justify-content:flex-end;gap:8px"><button type="button" class="btn btn-outline" onclick="templateDialog.close()">取消</button><button class="btn btn-accent">保存</button></div></form></dialog>
+<style>.template-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}.template-filters .active{background:#eef2ff;color:#4338ca;border-color:#c7d2fe}dialog{border:0;border-radius:14px;width:min(500px,calc(100% - 36px));padding:0;box-shadow:0 15px 50px rgba(15,23,42,.22)}dialog form{padding:26px}dialog form h3{margin-top:0}dialog label{display:block;margin:14px 0;font-size:13px;color:#475467}dialog input,dialog select{display:block;width:100%;margin-top:6px;padding:10px;border:1px solid #d9deea;border-radius:8px;font:inherit}</style>
+<script>
+const templateDialog=document.getElementById('templateDialog');
+function showTemplateModal(){templateDialog.showModal()}
+function saveTemplate(e){e.preventDefault();templateDialog.close();alert('模板入口已保留，模板上传与生成能力将在下一阶段接入。')}
+function batchDeleteTemplates(){alert('批量删除入口已保留，等待模板数据模块接入。')}
+function filterTemplates(category,button){document.querySelectorAll('.template-filters .btn').forEach(x=>x.classList.remove('active'));button.classList.add('active');document.getElementById('templateHint').textContent=category?`当前筛选：${category}。下一阶段将显示该分类下的模板。`:'选择上方分类查看模板。下一阶段将支持 Word/PDF 上传、预览和一键生成。'}
+</script>
 {% endblock %}

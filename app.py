@@ -11,6 +11,11 @@ DB_PATH = DATA_DIR / "caseflow.db"
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
 
+CASE_STATUSES = [
+    "一审进行中", "一审已结案", "二审进行中", "二审已结案",
+    "执行进行中", "执行已终本", "执行完毕", "已结案",
+]
+
 
 def get_db():
     DATA_DIR.mkdir(exist_ok=True)
@@ -37,7 +42,7 @@ def init_db():
                 case_number TEXT NOT NULL UNIQUE,
                 name TEXT NOT NULL,
                 case_type TEXT NOT NULL,
-                status TEXT NOT NULL DEFAULT '进行中',
+                status TEXT NOT NULL DEFAULT '一审进行中',
                 client_id INTEGER,
                 deadline TEXT,
                 description TEXT,
@@ -68,6 +73,18 @@ def init_db():
             );
             """
         )
+        # 兼容早期 MVP 数据：将简化版状态映射回原项目的完整状态体系。
+        db.execute("UPDATE cases SET status = '一审进行中' WHERE status = '进行中'")
+        db.execute("UPDATE cases SET status = '已结案' WHERE status = '已完成'")
+        existing_columns = {row[1] for row in db.execute("PRAGMA table_info(cases)").fetchall()}
+        for column, definition in {
+            "fee_status": "TEXT DEFAULT '未收费'",
+            "invoice_status": "TEXT DEFAULT '未开票'",
+            "claim_amount": "REAL",
+            "fee_amount": "REAL",
+        }.items():
+            if column not in existing_columns:
+                db.execute(f"ALTER TABLE cases ADD COLUMN {column} {definition}")
 
 
 @app.get("/")
@@ -319,6 +336,8 @@ def delete_client(client_id):
 def list_cases():
     keyword = request.args.get("keyword", "").strip()
     status = request.args.get("status", "").strip()
+    case_type = request.args.get("type", "").strip()
+    client_id = request.args.get("client_id", "").strip()
     query = """
         SELECT cases.*, clients.name AS client_name
         FROM cases LEFT JOIN clients ON clients.id = cases.client_id
@@ -331,6 +350,12 @@ def list_cases():
     if status:
         query += " AND cases.status = ?"
         params.append(status)
+    if case_type:
+        query += " AND cases.case_type = ?"
+        params.append(case_type)
+    if client_id:
+        query += " AND cases.client_id = ?"
+        params.append(client_id)
     query += " ORDER BY cases.created_at DESC, cases.id DESC"
     with get_db() as db:
         rows = db.execute(query, params).fetchall()
@@ -348,17 +373,21 @@ def create_case():
         with get_db() as db:
             cursor = db.execute(
                 """
-                INSERT INTO cases (case_number, name, case_type, status, client_id, deadline, description)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO cases (case_number, name, case_type, status, client_id, deadline, description, claim_amount, fee_amount, fee_status, invoice_status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     payload["case_number"].strip(),
                     payload["name"].strip(),
                     payload["case_type"].strip(),
-                    payload.get("status", "进行中"),
+                    payload.get("status", "一审进行中"),
                     payload.get("client_id") or None,
                     payload.get("deadline") or None,
                     payload.get("description", "").strip(),
+                    payload.get("claim_amount") or None,
+                    payload.get("fee_amount") or None,
+                    payload.get("fee_status", "未收费"),
+                    payload.get("invoice_status", "未开票"),
                 ),
             )
             case_id = cursor.lastrowid
@@ -379,17 +408,21 @@ def update_case(case_id):
             cursor = db.execute(
                 """
                 UPDATE cases
-                SET case_number = ?, name = ?, case_type = ?, status = ?, client_id = ?, deadline = ?, description = ?
+                SET case_number = ?, name = ?, case_type = ?, status = ?, client_id = ?, deadline = ?, description = ?, claim_amount = ?, fee_amount = ?, fee_status = ?, invoice_status = ?
                 WHERE id = ?
                 """,
                 (
                     payload["case_number"].strip(),
                     payload["name"].strip(),
                     payload["case_type"].strip(),
-                    payload.get("status", "进行中"),
+                    payload.get("status", "一审进行中"),
                     payload.get("client_id") or None,
                     payload.get("deadline") or None,
                     payload.get("description", "").strip(),
+                    payload.get("claim_amount") or None,
+                    payload.get("fee_amount") or None,
+                    payload.get("fee_status", "未收费"),
+                    payload.get("invoice_status", "未开票"),
                     case_id,
                 ),
             )
@@ -398,6 +431,54 @@ def update_case(case_id):
     except sqlite3.IntegrityError:
         return jsonify({"error": "案号已存在，请使用唯一案号"}), 409
     return jsonify({"success": True})
+
+
+@app.post("/api/cases/<int:case_id>/advance-status")
+def advance_case_status(case_id):
+    with get_db() as db:
+        row = db.execute("SELECT status FROM cases WHERE id = ?", (case_id,)).fetchone()
+        if not row:
+            return jsonify({"error": "案件不存在"}), 404
+        current = row["status"]
+        try:
+            next_status = CASE_STATUSES[CASE_STATUSES.index(current) + 1]
+        except (ValueError, IndexError):
+            return jsonify({"error": "当前案件已处于最终状态，无法继续推进"}), 400
+        db.execute("UPDATE cases SET status = ? WHERE id = ?", (next_status, case_id))
+    return jsonify({"success": True, "status": next_status})
+
+
+@app.post("/api/cases/<int:case_id>/close")
+def close_case(case_id):
+    with get_db() as db:
+        cursor = db.execute("UPDATE cases SET status = '已结案' WHERE id = ?", (case_id,))
+        if cursor.rowcount == 0:
+            return jsonify({"error": "案件不存在"}), 404
+    return jsonify({"success": True, "status": "已结案"})
+
+
+@app.post("/api/cases/<int:case_id>/toggle-fee")
+def toggle_fee_status(case_id):
+    values = ["未收费", "部分收费", "已收费"]
+    with get_db() as db:
+        row = db.execute("SELECT fee_status FROM cases WHERE id = ?", (case_id,)).fetchone()
+        if not row:
+            return jsonify({"error": "案件不存在"}), 404
+        next_value = values[(values.index(row["fee_status"] or values[0]) + 1) % len(values)]
+        db.execute("UPDATE cases SET fee_status = ? WHERE id = ?", (next_value, case_id))
+    return jsonify({"success": True, "value": next_value})
+
+
+@app.post("/api/cases/<int:case_id>/toggle-invoice")
+def toggle_invoice_status(case_id):
+    values = ["未开票", "部分开票", "已开票"]
+    with get_db() as db:
+        row = db.execute("SELECT invoice_status FROM cases WHERE id = ?", (case_id,)).fetchone()
+        if not row:
+            return jsonify({"error": "案件不存在"}), 404
+        next_value = values[(values.index(row["invoice_status"] or values[0]) + 1) % len(values)]
+        db.execute("UPDATE cases SET invoice_status = ? WHERE id = ?", (next_value, case_id))
+    return jsonify({"success": True, "value": next_value})
 
 
 @app.delete("/api/cases/<int:case_id>")

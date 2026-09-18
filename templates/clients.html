@@ -2,8 +2,8 @@
 {% block title %}客户管理 - CaseFlow{% endblock %}
 {% block content %}
 <div class="topbar">
-    <h2>客户管理</h2>
-    <button class="primary" onclick="openCreate()">+ 新建客户</button>
+    <div><h2>客户管理</h2><div class="topbar-subtitle">维护客户档案，并快速查看关联案件</div></div>
+    <div style="display:flex;gap:8px"><button class="btn btn-outline" onclick="exportClients()">⇩ 导出 Excel</button><button class="btn btn-accent" onclick="openCreate()">＋ 新建客户</button></div>
 </div>
 <section class="card toolbar">
     <input id="keyword" placeholder="搜索客户名称、电话或邮箱" oninput="loadClients()">
@@ -25,11 +25,12 @@
 </style>
 <script>
 const clientDialog=document.getElementById('clientDialog'), clientRows=document.getElementById('clientRows'), empty=document.getElementById('empty');
-async function loadClients(){const response=await fetch('/api/clients?keyword='+encodeURIComponent(document.getElementById('keyword').value));const items=await response.json();empty.hidden=items.length!==0;clientRows.innerHTML=items.map(item=>`<tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.client_type)}</td><td>${escapeHtml(item.phone||'—')}</td><td>${escapeHtml(item.email||'—')}</td><td class="actions"><button onclick='openEdit(${JSON.stringify(item)})'>编辑</button><button class="danger" onclick="removeClient(${item.id})">删除</button></td></tr>`).join('')}
+async function loadClients(){const response=await fetch('/api/clients?keyword='+encodeURIComponent(document.getElementById('keyword').value));const items=await response.json();empty.hidden=items.length!==0;clientRows.innerHTML=items.map(item=>`<tr><td><strong>${escapeHtml(item.name)}</strong></td><td>${escapeHtml(item.client_type)}</td><td>${escapeHtml(item.phone||'—')}</td><td>${escapeHtml(item.email||'—')}</td><td class="actions"><button onclick="location.href='/cases?client_id=${item.id}'">查看案件</button><button onclick='openEdit(${JSON.stringify(item)})'>编辑</button><button class="danger" onclick="removeClient(${item.id})">删除</button></td></tr>`).join('')}
 function openCreate(){document.querySelector('form').reset();document.getElementById('dialogTitle').textContent='新建客户';document.getElementById('clientId').value='';clientDialog.showModal()}
 function openEdit(item){document.getElementById('dialogTitle').textContent='编辑客户';clientId.value=item.id;clientName.value=item.name;clientType.value=item.client_type;clientPhone.value=item.phone||'';clientEmail.value=item.email||'';clientDialog.showModal()}
 async function saveClient(event){event.preventDefault();const id=clientId.value;const payload={name:clientName.value,client_type:clientType.value,phone:clientPhone.value,email:clientEmail.value};const response=await fetch(id?'/api/clients/'+id:'/api/clients',{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const result=await response.json();if(!response.ok)return alert(result.error||'保存失败');clientDialog.close();loadClients()}
 async function removeClient(id){if(!confirm('确定要删除这个客户吗？'))return;const response=await fetch('/api/clients/'+id,{method:'DELETE'});if(!response.ok)return alert('删除失败');loadClients()}
+async function exportClients(){const items=await(await fetch('/api/clients')).json();const rows=[['客户名称','类型','电话','邮箱'],...items.map(x=>[x.name,x.client_type,x.phone||'',x.email||''])];const csv='\\ufeff'+rows.map(row=>row.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='caseflow-clients.csv';a.click();URL.revokeObjectURL(a.href)}
 function escapeHtml(value){return String(value??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}loadClients();
 </script>
 {% endblock %}

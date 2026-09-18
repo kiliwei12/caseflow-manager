@@ -18,7 +18,7 @@ def seed():
             INSERT INTO cases (case_number, name, case_type, status, client_id, deadline, description)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            ("(2026)沪0101民初001号", "星河科技诉远航供应链合同纠纷", "合同纠纷", "进行中", client_id, "2026-10-15", "围绕设备采购合同履约和逾期付款的争议。"),
+            ("(2026)沪0101民初001号", "星河科技诉远航供应链合同纠纷", "合同纠纷", "一审进行中", client_id, "2026-10-15", "围绕设备采购合同履约和逾期付款的争议。"),
         ).lastrowid
         db.execute(
             "INSERT INTO cases (case_number, name, case_type, status, client_id, deadline, description) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -44,4 +44,3 @@ def seed():
 
 if __name__ == "__main__":
     seed()
-

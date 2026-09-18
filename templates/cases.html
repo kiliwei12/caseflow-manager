@@ -2,25 +2,25 @@
 {% block title %}案件管理 - CaseFlow{% endblock %}
 {% block content %}
 <div class="topbar">
-    <h2>案件管理</h2>
-    <button class="primary" onclick="openCreate()">+ 新建案件</button>
+    <div><h2>案件管理</h2><div class="topbar-subtitle">案件状态、客户关系与收费节点统一管理</div></div>
+    <button class="btn btn-accent" onclick="openCreate()">＋ 新建案件</button>
 </div>
 
 <section class="card toolbar">
-    <input id="keyword" placeholder="搜索案号、案件名称或客户" oninput="loadCases()">
+    <input id="keyword" placeholder="搜索案号、案件名称、对方当事人或客户" oninput="loadCases()">
     <select id="status" onchange="loadCases()">
         <option value="">全部状态</option>
-        <option>进行中</option>
-        <option>已结案</option>
-        <option>暂停</option>
+        <option>一审进行中</option><option>一审已结案</option><option>二审进行中</option><option>二审已结案</option>
+        <option>执行进行中</option><option>执行已终本</option><option>执行完毕</option><option>已结案</option>
     </select>
+    <select id="type" onchange="loadCases()"><option value="">全部案由</option><option>合同纠纷</option><option>知识产权</option><option>劳动争议</option><option>公司纠纷</option><option>其他</option></select>
 </section>
 
 <section class="card table-card">
     <div id="empty" class="empty" hidden>暂无案件，点击右上角新建第一条案件。</div>
     <div class="table-wrap">
         <table>
-            <thead><tr><th>案号</th><th>案件名称</th><th>类型</th><th>状态</th><th>截止日期</th><th>操作</th></tr></thead>
+            <thead><tr><th>案号</th><th>案件名称</th><th>案由</th><th>客户</th><th>状态</th><th>收费状态</th><th>开票状态</th><th>操作</th></tr></thead>
             <tbody id="caseRows"></tbody>
         </table>
     </div>
@@ -33,26 +33,32 @@
         <label>案号<input id="caseNumber" required placeholder="例如：(2026)沪0101民初001号"></label>
         <label>案件名称<input id="caseName" required placeholder="例如：甲公司诉乙公司合同纠纷"></label>
         <label>案件类型<input id="caseType" required placeholder="例如：合同纠纷"></label>
-        <label>状态<select id="caseStatus"><option>进行中</option><option>已结案</option><option>暂停</option></select></label>
+        <label>案件状态<select id="caseStatus"><option>一审进行中</option><option>一审已结案</option><option>二审进行中</option><option>二审已结案</option><option>执行进行中</option><option>执行已终本</option><option>执行完毕</option><option>已结案</option></select></label>
         <label>关联客户<select id="caseClient"><option value="">未关联客户</option></select></label>
         <label>下一节点日期<input id="caseDeadline" type="date"></label>
+        <label>诉求金额（元）<input id="claimAmount" type="number" step="0.01"></label>
+        <label>律师费（元）<input id="feeAmount" type="number" step="0.01"></label>
+        <label>收费状态<select id="feeStatus"><option>未收费</option><option>部分收费</option><option>已收费</option></select></label>
+        <label>开票状态<select id="invoiceStatus"><option>未开票</option><option>部分开票</option><option>已开票</option></select></label>
         <label>案件描述<textarea id="caseDescription" rows="4"></textarea></label>
         <div class="dialog-actions"><button type="button" onclick="caseDialog.close()">取消</button><button class="primary">保存</button></div>
     </form>
 </dialog>
 
 <style>
-    .primary { border: 0; border-radius: 8px; background: #7f37a2; color: white; padding: 11px 16px; cursor: pointer; }
-    .toolbar { display: flex; gap: 12px; margin-bottom: 18px; }
-    .toolbar input, .toolbar select { border: 1px solid #ddd; border-radius: 8px; padding: 11px 12px; font-size: 14px; }
+    .primary { border: 0; border-radius: 8px; background: #4f46e5; color: white; padding: 11px 16px; cursor: pointer; }
+    .toolbar { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap:wrap; }
+    .toolbar input, .toolbar select { border: 1px solid #d9deea; border-radius: 8px; padding: 11px 12px; font-size: 14px; }
     .toolbar input { flex: 1; }
     .table-card { overflow: hidden; padding: 0; }
     .table-wrap { overflow-x: auto; }
-    table { border-collapse: collapse; width: 100%; min-width: 760px; }
+    table { border-collapse: collapse; width: 100%; min-width: 1100px; }
     th, td { text-align: left; padding: 16px 20px; border-bottom: 1px solid #eee; font-size: 14px; }
     th { color: #777; font-weight: 500; background: #faf9fc; }
-    .status { display: inline-block; border-radius: 999px; padding: 5px 10px; background: #eef2ff; color: #4338ca; }
-    .actions button { border: 0; background: transparent; color: #4f46e5; cursor: pointer; margin-right: 10px; }
+    .status { display: inline-block; border-radius: 999px; padding: 5px 10px; background: #eef2ff; color: #4338ca; white-space:nowrap; }
+    .mini-badge { display:inline-block; border-radius:999px; padding:4px 8px; font-size:12px; cursor:pointer; white-space:nowrap; }
+    .fee-未收费,.fee-未开票 { background:#fee2e2;color:#b91c1c; }.fee-部分收费,.fee-部分开票{background:#fef3c7;color:#92400e}.fee-已收费,.fee-已开票{background:#dcfce7;color:#166534}
+    .actions { white-space:nowrap; }.actions button { border: 1px solid #d9deea; background: white; border-radius: 7px; padding:6px 8px; color: #4f46e5; cursor: pointer; margin-right: 5px; }
     .actions .danger { color: #c73b3b; }
     .empty { padding: 42px; text-align: center; color: #777; }
     dialog { border: 0; border-radius: 14px; width: min(560px, calc(100% - 36px)); padding: 0; box-shadow: 0 15px 50px rgba(0,0,0,.22); }
@@ -76,14 +82,18 @@ async function loadClients() {
     caseClient.innerHTML = '<option value="">未关联客户</option>' + clientOptions.map(x => `<option value="${x.id}">${escapeHtml(x.name)} · ${escapeHtml(x.client_type)}</option>`).join('');
 }
 async function loadCases() {
-    const params = new URLSearchParams({ keyword: document.getElementById('keyword').value, status: document.getElementById('status').value });
+    const params = new URLSearchParams({ keyword: document.getElementById('keyword').value, status: document.getElementById('status').value, type: document.getElementById('type').value, client_id: new URLSearchParams(location.search).get('client_id') || '' });
     const response = await fetch('/api/cases?' + params);
     const cases = await response.json();
     empty.hidden = cases.length !== 0;
-    caseRows.innerHTML = cases.map(item => `
-        <tr><td>${escapeHtml(item.case_number)}</td><td><a href="/cases/${item.id}">${escapeHtml(item.name)}</a></td><td>${escapeHtml(item.case_type)}</td>
-        <td><span class="status">${escapeHtml(item.status)}</span></td><td>${item.deadline || '—'}</td>
-        <td class="actions"><button onclick='openEdit(${JSON.stringify(item)})'>编辑</button><button class="danger" onclick="removeCase(${item.id})">删除</button></td></tr>`).join('');
+    caseRows.innerHTML = cases.map(item => {
+        const terminal = item.status === '执行完毕' || item.status === '已结案';
+        return `<tr onclick="location.href='/cases/${item.id}'" style="cursor:pointer"><td><small>${escapeHtml(item.case_number)}</small></td><td><strong>${escapeHtml(item.name)}</strong><br><small style="color:var(--muted)">${item.deadline ? '节点：'+item.deadline : ''}</small></td><td>${escapeHtml(item.case_type)}</td>
+        <td>${escapeHtml(item.client_name || '—')}</td><td><span class="status">${escapeHtml(item.status)}</span></td>
+        <td><span class="mini-badge fee-${escapeHtml(item.fee_status || '未收费')}" onclick="event.stopPropagation();toggleFee(${item.id})" title="点击切换收费状态">${escapeHtml(item.fee_status || '未收费')}</span></td>
+        <td><span class="mini-badge fee-${escapeHtml(item.invoice_status || '未开票')}" onclick="event.stopPropagation();toggleInvoice(${item.id})" title="点击切换开票状态">${escapeHtml(item.invoice_status || '未开票')}</span></td>
+        <td class="actions"><button onclick='event.stopPropagation();openEdit(${JSON.stringify(item)})' title="编辑">✎</button><button onclick="event.stopPropagation();advanceStatus(${item.id})" title="推进状态" ${terminal?'disabled':''}>→</button><button onclick="event.stopPropagation();markAsClosed(${item.id})" title="标记为已结案" ${item.status==='已结案'?'disabled':''}>✓</button><button class="danger" onclick="event.stopPropagation();removeCase(${item.id})" title="删除">⌫</button></td></tr>`;
+    }).join('');
 }
 
 function openCreate() {
@@ -102,6 +112,10 @@ function openEdit(item) {
     document.getElementById('caseStatus').value = item.status;
     document.getElementById('caseClient').value = item.client_id || '';
     document.getElementById('caseDeadline').value = item.deadline || '';
+    document.getElementById('claimAmount').value = item.claim_amount || '';
+    document.getElementById('feeAmount').value = item.fee_amount || '';
+    document.getElementById('feeStatus').value = item.fee_status || '未收费';
+    document.getElementById('invoiceStatus').value = item.invoice_status || '未开票';
     document.getElementById('caseDescription').value = item.description || '';
     caseDialog.showModal();
 }
@@ -109,7 +123,7 @@ function openEdit(item) {
 async function saveCase(event) {
     event.preventDefault();
     const id = document.getElementById('caseId').value;
-    const payload = { case_number: caseNumber.value, name: caseName.value, case_type: caseType.value, status: caseStatus.value, client_id: caseClient.value, deadline: caseDeadline.value, description: caseDescription.value };
+    const payload = { case_number: caseNumber.value, name: caseName.value, case_type: caseType.value, status: caseStatus.value, client_id: caseClient.value, deadline: caseDeadline.value, claim_amount: claimAmount.value, fee_amount: feeAmount.value, fee_status: feeStatus.value, invoice_status: invoiceStatus.value, description: caseDescription.value };
     const response = await fetch(id ? '/api/cases/' + id : '/api/cases', { method: id ? 'PUT' : 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
     const result = await response.json();
     if (!response.ok) return alert(result.error || '保存失败');
@@ -124,12 +138,31 @@ async function removeCase(id) {
     loadCases();
 }
 
+async function advanceStatus(id) {
+    const response = await fetch('/api/cases/' + id + '/advance-status', {method:'POST'});
+    const result = await response.json();
+    if (!response.ok) return alert(result.error || '状态推进失败');
+    loadCases();
+}
+
+async function markAsClosed(id) {
+    if (!confirm('确定将该案件标记为已结案吗？')) return;
+    const response = await fetch('/api/cases/' + id + '/close', {method:'POST'});
+    if (!response.ok) return alert('操作失败');
+    loadCases();
+}
+
+async function toggleFee(id) { await fetch('/api/cases/' + id + '/toggle-fee', {method:'POST'}); loadCases(); }
+async function toggleInvoice(id) { await fetch('/api/cases/' + id + '/toggle-invoice', {method:'POST'}); loadCases(); }
+
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 }
 
 const initialStatus = new URLSearchParams(location.search).get('status');
 if (initialStatus) document.getElementById('status').value = initialStatus;
+const initialType = new URLSearchParams(location.search).get('type');
+if (initialType) document.getElementById('type').value = initialType;
 loadClients().then(loadCases);
 </script>
 {% endblock %}
