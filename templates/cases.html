@@ -8,7 +8,7 @@
 
 <section class="card toolbar">
     <input id="keyword" placeholder="搜索案号、案件名称、对方当事人或客户" oninput="loadCases()">
-    <select id="status" onchange="loadCases()">
+    <select id="filter-status" onchange="loadCases()">
         <option value="">全部状态</option>
         <option>一审进行中</option><option>一审已结案</option><option>二审进行中</option><option>二审已结案</option>
         <option>执行进行中</option><option>执行已终本</option><option>执行完毕</option><option>已结案</option>
@@ -82,7 +82,7 @@ async function loadClients() {
     caseClient.innerHTML = '<option value="">未关联客户</option>' + clientOptions.map(x => `<option value="${x.id}">${escapeHtml(x.name)} · ${escapeHtml(x.client_type)}</option>`).join('');
 }
 async function loadCases() {
-    const params = new URLSearchParams({ keyword: document.getElementById('keyword').value, status: document.getElementById('status').value, type: document.getElementById('type').value, client_id: new URLSearchParams(location.search).get('client_id') || '' });
+    const params = new URLSearchParams({ keyword: document.getElementById('keyword').value, status: document.getElementById('filter-status').value, type: document.getElementById('type').value, client_id: new URLSearchParams(location.search).get('client_id') || '' });
     const response = await fetch('/api/cases?' + params);
     const cases = await response.json();
     empty.hidden = cases.length !== 0;
@@ -92,7 +92,7 @@ async function loadCases() {
         <td>${escapeHtml(item.client_name || '—')}</td><td><span class="status">${escapeHtml(item.status)}</span></td>
         <td><span class="mini-badge fee-${escapeHtml(item.fee_status || '未收费')}" onclick="event.stopPropagation();toggleFee(${item.id})" title="点击切换收费状态">${escapeHtml(item.fee_status || '未收费')}</span></td>
         <td><span class="mini-badge fee-${escapeHtml(item.invoice_status || '未开票')}" onclick="event.stopPropagation();toggleInvoice(${item.id})" title="点击切换开票状态">${escapeHtml(item.invoice_status || '未开票')}</span></td>
-        <td class="actions"><button onclick='event.stopPropagation();openEdit(${JSON.stringify(item)})' title="编辑">✎</button><button onclick="event.stopPropagation();advanceStatus(${item.id})" title="推进状态" ${terminal?'disabled':''}>→</button><button onclick="event.stopPropagation();markAsClosed(${item.id})" title="标记为已结案" ${item.status==='已结案'?'disabled':''}>✓</button><button class="danger" onclick="event.stopPropagation();removeCase(${item.id})" title="删除">⌫</button></td></tr>`;
+        <td class="actions"><button onclick="event.stopPropagation();editCase(${item.id})" title="编辑">编辑</button><button onclick="event.stopPropagation();advanceStatus(${item.id})" title="推进状态" ${terminal?'disabled':''}>推进状态</button><button onclick="event.stopPropagation();markAsClosed(${item.id})" title="标记为已结案" ${item.status==='已结案'?'disabled':''}>标记为已结案</button><button class="danger" onclick="event.stopPropagation();deleteCase(${item.id})" title="删除">删除</button></td></tr>`;
     }).join('');
 }
 
@@ -138,6 +138,12 @@ async function removeCase(id) {
     loadCases();
 }
 
+function editCase(id) {
+    fetch('/api/cases/' + id).then(response => response.json()).then(openEdit);
+}
+
+function deleteCase(id) { return removeCase(id); }
+
 async function advanceStatus(id) {
     const response = await fetch('/api/cases/' + id + '/advance-status', {method:'POST'});
     const result = await response.json();
@@ -160,7 +166,7 @@ function escapeHtml(value) {
 }
 
 const initialStatus = new URLSearchParams(location.search).get('status');
-if (initialStatus) document.getElementById('status').value = initialStatus;
+if (initialStatus) document.getElementById('filter-status').value = initialStatus;
 const initialType = new URLSearchParams(location.search).get('type');
 if (initialType) document.getElementById('type').value = initialType;
 loadClients().then(loadCases);
