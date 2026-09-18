@@ -69,6 +69,7 @@
             <a class="{% if request.path.startswith('/todos') %}active{% endif %}" href="/todos" onclick="location.href='/todos'"><span class="nav-icon">✓</span><span>待办事项</span></a>
             <a class="{% if request.path.startswith('/templates') %}active{% endif %}" href="/templates" onclick="location.href='/templates'"><span class="nav-icon">▤</span><span>文书模板</span></a>
             <a class="{% if request.path.startswith('/statistics') %}active{% endif %}" href="/statistics" onclick="location.href='/statistics'"><span class="nav-icon">▥</span><span>数据统计</span></a>
+            <a class="{% if request.path.startswith('/activity-log') %}active{% endif %}" href="/activity-log" onclick="location.href='/activity-log'"><span class="nav-icon">◷</span><span>操作日志</span></a>
         </nav>
         <div class="sidebar-footer">🔒 数据不上云 · 隐私优先<br>CaseFlow Product Portfolio<br>案件全生命周期管理平台</div>
     </aside>

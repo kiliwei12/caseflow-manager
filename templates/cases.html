@@ -3,7 +3,7 @@
 {% block content %}
 <div class="topbar">
     <div><h2>案件管理</h2><div class="topbar-subtitle">案件状态、客户关系与收费节点统一管理</div></div>
-    <button class="btn btn-accent" onclick="openCreate()">＋ 新建案件</button>
+    <div style="display:flex;gap:8px"><a class="btn btn-outline" href="/api/cases/export">⇩ 导出案件</a><button class="btn btn-accent" onclick="openCreate()">＋ 新建案件</button></div>
 </div>
 
 <section class="card toolbar">
@@ -14,13 +14,19 @@
         <option>执行进行中</option><option>执行已终本</option><option>执行完毕</option><option>已结案</option>
     </select>
     <select id="type" onchange="loadCases()"><option value="">全部案由</option><option>合同纠纷</option><option>知识产权</option><option>劳动争议</option><option>公司纠纷</option><option>其他</option></select>
+    <button class="btn btn-outline" onclick="toggleAdvancedFilters()">高级筛选</button>
+</section>
+<section id="advancedFilters" class="card advanced-filters" hidden>
+    <select id="riskLevel" onchange="loadCases()"><option value="">全部风险等级</option><option>低</option><option>中</option><option>高</option></select>
+    <input id="owner" placeholder="按负责人筛选" oninput="loadCases()">
+    <input id="tag" placeholder="按标签筛选，如：紧急" oninput="loadCases()">
 </section>
 
 <section class="card table-card">
     <div id="empty" class="empty" hidden>暂无案件，点击右上角新建第一条案件。</div>
     <div class="table-wrap">
         <table>
-            <thead><tr><th>案号</th><th>案件名称</th><th>案由</th><th>客户</th><th>状态</th><th>收费状态</th><th>开票状态</th><th>操作</th></tr></thead>
+            <thead><tr><th>案号</th><th>案件名称</th><th>案由</th><th>客户</th><th>状态</th><th>风险 / 健康度</th><th>负责人 / 标签</th><th>收费状态</th><th>开票状态</th><th>操作</th></tr></thead>
             <tbody id="caseRows"></tbody>
         </table>
     </div>
@@ -35,7 +41,11 @@
         <label>案件类型<input id="caseType" required placeholder="例如：合同纠纷"></label>
         <label>案件状态<select id="caseStatus"><option>一审进行中</option><option>一审已结案</option><option>二审进行中</option><option>二审已结案</option><option>执行进行中</option><option>执行已终本</option><option>执行完毕</option><option>已结案</option></select></label>
         <label>关联客户<select id="caseClient"><option value="">未关联客户</option></select></label>
-        <label>下一节点日期<input id="caseDeadline" type="date"></label>
+        <label>关键日期类型<select id="deadlineKind"><option>关键节点</option><option>开庭日期</option><option>举证期限</option><option>提交材料</option><option>客户沟通</option></select></label>
+        <label>关键日期<input id="caseDeadline" type="date"></label>
+        <label>风险等级<select id="caseRisk"><option>低</option><option selected>中</option><option>高</option></select></label>
+        <label>案件负责人<input id="caseOwner" placeholder="例如：张律师"></label>
+        <label>案件标签<input id="caseTags" placeholder="多个标签用逗号分隔，例如：紧急,合同"></label>
         <label>诉求金额（元）<input id="claimAmount" type="number" step="0.01"></label>
         <label>律师费（元）<input id="feeAmount" type="number" step="0.01"></label>
         <label>收费状态<select id="feeStatus"><option>未收费</option><option>部分收费</option><option>已收费</option></select></label>
@@ -52,7 +62,7 @@
     .toolbar input { flex: 1; }
     .table-card { overflow: hidden; padding: 0; }
     .table-wrap { overflow-x: auto; }
-    table { border-collapse: collapse; width: 100%; min-width: 1100px; }
+    table { border-collapse: collapse; width: 100%; min-width: 1380px; }
     th, td { text-align: left; padding: 16px 20px; border-bottom: 1px solid #eee; font-size: 14px; }
     th { color: #777; font-weight: 500; background: #faf9fc; }
     .status { display: inline-block; border-radius: 999px; padding: 5px 10px; background: #eef2ff; color: #4338ca; white-space:nowrap; }
@@ -60,6 +70,7 @@
     .fee-未收费,.fee-未开票 { background:#fee2e2;color:#b91c1c; }.fee-部分收费,.fee-部分开票{background:#fef3c7;color:#92400e}.fee-已收费,.fee-已开票{background:#dcfce7;color:#166534}
     .actions { white-space:nowrap; }.actions button { border: 1px solid #d9deea; background: white; border-radius: 7px; padding:6px 8px; color: #4f46e5; cursor: pointer; margin-right: 5px; }
     .actions .danger { color: #c73b3b; }
+    .advanced-filters { display:flex; gap:12px; margin:-6px 0 18px; }.advanced-filters[hidden]{display:none}.advanced-filters input,.advanced-filters select{flex:1;border:1px solid #d9deea;border-radius:8px;padding:11px 12px;font:inherit}.risk{font-size:12px;padding:4px 8px;border-radius:99px;display:inline-block}.risk-低{background:#dcfce7;color:#166534}.risk-中{background:#fff3c4;color:#854d0e}.risk-高{background:#fee2e2;color:#b91c1c}.health{font-size:12px;color:var(--muted);margin-top:4px}.tag{display:inline-block;background:var(--primary-soft);color:var(--primary-pressed);border-radius:99px;padding:3px 7px;font-size:11px;margin:2px}
     .empty { padding: 42px; text-align: center; color: #777; }
     dialog { border: 0; border-radius: 14px; width: min(560px, calc(100% - 36px)); padding: 0; box-shadow: 0 15px 50px rgba(0,0,0,.22); }
     dialog::backdrop { background: rgba(32, 18, 45, .35); }
@@ -82,7 +93,7 @@ async function loadClients() {
     caseClient.innerHTML = '<option value="">未关联客户</option>' + clientOptions.map(x => `<option value="${x.id}">${escapeHtml(x.name)} · ${escapeHtml(x.client_type)}</option>`).join('');
 }
 async function loadCases() {
-    const params = new URLSearchParams({ keyword: document.getElementById('keyword').value, status: document.getElementById('filter-status').value, type: document.getElementById('type').value, client_id: new URLSearchParams(location.search).get('client_id') || '' });
+    const params = new URLSearchParams({ keyword: document.getElementById('keyword').value, status: document.getElementById('filter-status').value, type: document.getElementById('type').value, risk_level:document.getElementById('riskLevel').value, owner:document.getElementById('owner').value, tag:document.getElementById('tag').value, client_id: new URLSearchParams(location.search).get('client_id') || '' });
     const response = await fetch('/api/cases?' + params);
     const cases = await response.json();
     empty.hidden = cases.length !== 0;
@@ -90,6 +101,8 @@ async function loadCases() {
         const terminal = item.status === '执行完毕' || item.status === '已结案';
         return `<tr onclick="location.href='/cases/${item.id}'" style="cursor:pointer"><td><small>${escapeHtml(item.case_number)}</small></td><td><strong>${escapeHtml(item.name)}</strong><br><small style="color:var(--muted)">${item.deadline ? '节点：'+item.deadline : ''}</small></td><td>${escapeHtml(item.case_type)}</td>
         <td>${escapeHtml(item.client_name || '—')}</td><td><span class="status">${escapeHtml(item.status)}</span></td>
+        <td><span class="risk risk-${escapeHtml(item.risk_level || '中')}">${escapeHtml(item.risk_level || '中')}风险</span><div class="health">健康度 ${item.health_score} · ${item.health_label}</div></td>
+        <td><div>${escapeHtml(item.owner_name || '未分配')}</div><div>${(item.tags||'').split(',').filter(Boolean).map(x=>`<span class="tag">${escapeHtml(x.trim())}</span>`).join('') || '—'}</div></td>
         <td><span class="mini-badge fee-${escapeHtml(item.fee_status || '未收费')}" onclick="event.stopPropagation();toggleFee(${item.id})" title="点击切换收费状态">${escapeHtml(item.fee_status || '未收费')}</span></td>
         <td><span class="mini-badge fee-${escapeHtml(item.invoice_status || '未开票')}" onclick="event.stopPropagation();toggleInvoice(${item.id})" title="点击切换开票状态">${escapeHtml(item.invoice_status || '未开票')}</span></td>
         <td class="actions"><button onclick="event.stopPropagation();editCase(${item.id})" title="编辑">编辑</button><button onclick="event.stopPropagation();advanceStatus(${item.id})" title="推进状态" ${terminal?'disabled':''}>推进状态</button><button onclick="event.stopPropagation();markAsClosed(${item.id})" title="标记为已结案" ${item.status==='已结案'?'disabled':''}>标记为已结案</button><button class="danger" onclick="event.stopPropagation();deleteCase(${item.id})" title="删除">删除</button></td></tr>`;
@@ -111,7 +124,11 @@ function openEdit(item) {
     document.getElementById('caseType').value = item.case_type;
     document.getElementById('caseStatus').value = item.status;
     document.getElementById('caseClient').value = item.client_id || '';
+    document.getElementById('deadlineKind').value = item.deadline_kind || '关键节点';
     document.getElementById('caseDeadline').value = item.deadline || '';
+    document.getElementById('caseRisk').value = item.risk_level || '中';
+    document.getElementById('caseOwner').value = item.owner_name || '';
+    document.getElementById('caseTags').value = item.tags || '';
     document.getElementById('claimAmount').value = item.claim_amount || '';
     document.getElementById('feeAmount').value = item.fee_amount || '';
     document.getElementById('feeStatus').value = item.fee_status || '未收费';
@@ -123,7 +140,7 @@ function openEdit(item) {
 async function saveCase(event) {
     event.preventDefault();
     const id = document.getElementById('caseId').value;
-    const payload = { case_number: caseNumber.value, name: caseName.value, case_type: caseType.value, status: caseStatus.value, client_id: caseClient.value, deadline: caseDeadline.value, claim_amount: claimAmount.value, fee_amount: feeAmount.value, fee_status: feeStatus.value, invoice_status: invoiceStatus.value, description: caseDescription.value };
+    const payload = { case_number: caseNumber.value, name: caseName.value, case_type: caseType.value, status: caseStatus.value, client_id: caseClient.value, deadline_kind:deadlineKind.value, deadline: caseDeadline.value, risk_level:caseRisk.value, owner_name:caseOwner.value, tags:caseTags.value, claim_amount: claimAmount.value, fee_amount: feeAmount.value, fee_status: feeStatus.value, invoice_status: invoiceStatus.value, description: caseDescription.value };
     const response = await fetch(id ? '/api/cases/' + id : '/api/cases', { method: id ? 'PUT' : 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
     const result = await response.json();
     if (!response.ok) return alert(result.error || '保存失败');
@@ -143,6 +160,7 @@ function editCase(id) {
 }
 
 function deleteCase(id) { return removeCase(id); }
+function toggleAdvancedFilters(){const target=document.getElementById('advancedFilters');target.hidden=!target.hidden}
 
 async function advanceStatus(id) {
     const response = await fetch('/api/cases/' + id + '/advance-status', {method:'POST'});
