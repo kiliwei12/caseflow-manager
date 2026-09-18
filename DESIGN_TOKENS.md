@@ -1,6 +1,6 @@
-# CaseFlow 视觉 Token（Miro-inspired）
+# CaseFlow 视觉 Token（协作画布风格）
 
-CaseFlow 使用“白色协作画布 + 蓝色交互 + 低饱和协作色块”的视觉方向，参考 `awesome-design-md` 中的 Miro 设计系统；不复制 Miro 的品牌名称、标志或产品界面。
+CaseFlow 使用“白色协作画布 + 蓝色交互 + 低饱和协作色块”的视觉方向，形成独立的 CaseFlow 产品视觉系统。
 
 | Token | 色值 | 用途 |
 |---|---|---|
@@ -18,6 +18,3 @@ CaseFlow 使用“白色协作画布 + 蓝色交互 + 低饱和协作色块”�
 | `--ring` | `rgb(224,226,232) 0 0 0 1px` | 轻量边界，不使用重阴影 |
 
 组件规则：按钮使用 8px 圆角；卡片使用 16px 圆角；优先使用 1px ring 边界和色块对比建立层级，避免厚重阴影。
-
-参考：<https://github.com/HU-UH/awesome-design-md/tree/main/design-md/miro>
-

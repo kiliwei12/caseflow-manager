@@ -98,7 +98,7 @@ def init_db():
             );
             """
         )
-        # 兼容早期 MVP 数据：将简化版状态映射回原项目的完整状态体系。
+        # 兼容早期 MVP 数据：将简化版状态迁移到完整状态体系。
         db.execute("UPDATE cases SET status = '一审进行中' WHERE status = '进行中'")
         db.execute("UPDATE cases SET status = '已结案' WHERE status = '已完成'")
         existing_columns = {row[1] for row in db.execute("PRAGMA table_info(cases)").fetchall()}
