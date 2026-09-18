@@ -2,7 +2,7 @@
 
 这是一个面向个人律师、法务和小型法律团队的案件全生命周期管理平台。
 
-线上 Demo：部署完成后，将 Render 服务地址填写到这里。
+线上 Demo：[caseflow-manager.onrender.com](https://caseflow-manager.onrender.com)
 
 本项目以独立的产品设计、数据模型、界面和功能迭代为目标，用于展示 Flask 全栈开发与产品经理项目实践。
 
