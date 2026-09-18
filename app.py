@@ -159,13 +159,23 @@ def statistics_page():
     return render_template("statistics.html")
 
 
+@app.get("/templates")
+def templates_page():
+    return render_template("templates.html")
+
+
 @app.get("/api/statistics")
 def statistics():
+    from datetime import date
     with get_db() as db:
         total_cases = db.execute("SELECT COUNT(*) FROM cases").fetchone()[0]
         total_clients = db.execute("SELECT COUNT(*) FROM clients").fetchone()[0]
         open_todos = db.execute("SELECT COUNT(*) FROM todos WHERE status != '已完成'").fetchone()[0]
         completed_todos = db.execute("SELECT COUNT(*) FROM todos WHERE status = '已完成'").fetchone()[0]
+        overdue_todos = db.execute(
+            "SELECT COUNT(*) FROM todos WHERE status != '已完成' AND deadline IS NOT NULL AND deadline < ?",
+            (date.today().isoformat(),),
+        ).fetchone()[0]
         cases_by_status = [dict(row) for row in db.execute("SELECT status AS label, COUNT(*) AS value FROM cases GROUP BY status ORDER BY value DESC").fetchall()]
         cases_by_type = [dict(row) for row in db.execute("SELECT case_type AS label, COUNT(*) AS value FROM cases GROUP BY case_type ORDER BY value DESC").fetchall()]
         todos_by_priority = [dict(row) for row in db.execute("SELECT priority AS label, COUNT(*) AS value FROM todos WHERE status != '已完成' GROUP BY priority ORDER BY value DESC").fetchall()]
@@ -174,6 +184,7 @@ def statistics():
         "total_clients": total_clients,
         "open_todos": open_todos,
         "completed_todos": completed_todos,
+        "overdue_todos": overdue_todos,
         "cases_by_status": cases_by_status,
         "cases_by_type": cases_by_type,
         "todos_by_priority": todos_by_priority,

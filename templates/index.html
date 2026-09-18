@@ -1,18 +1,38 @@
 {% extends "base.html" %}
-{% block title %}系统概览 - CaseFlow{% endblock %}
+{% block title %}系统首页 - CaseFlow{% endblock %}
 {% block content %}
 <div class="topbar">
-    <h2>系统概览</h2>
-    <span class="badge">MVP 基础骨架</span>
+    <div><h2>系统首页</h2><div class="topbar-subtitle">统一管理案件、客户、待办与关键节点</div></div>
+    <button class="btn btn-accent" onclick="location.href='/cases'"><span>＋</span> 新建案件</button>
 </div>
-<div class="cards">
-    <section class="card"><small>案件总数</small><div class="metric">{{ counts.cases }}</div></section>
-    <section class="card"><small>客户总数</small><div class="metric">{{ counts.clients }}</div></section>
-    <section class="card"><small>未完成待办</small><div class="metric">{{ counts.todos }}</div></section>
+
+<div class="cards" id="stat-cards">
+    <section class="card clickable" onclick="location.href='/cases'"><div style="color:var(--primary);font-size:24px">▣</div><small>总案件数</small><div class="metric" id="total-cases">{{ counts.cases }}</div><div style="color:var(--muted);font-size:12px;margin-top:6px">查看全部案件 →</div></section>
+    <section class="card clickable" onclick="location.href='/cases?status=进行中'"><div style="color:var(--success);font-size:24px">↻</div><small>进行中（合计）</small><div class="metric" id="active-cases">—</div><div style="color:var(--muted);font-size:12px;margin-top:6px">跟进中的案件 →</div></section>
+    <section class="card clickable" onclick="location.href='/todos'"><div style="color:var(--warning);font-size:24px">✓</div><small>待办事项</small><div class="metric" id="pending-todos">{{ counts.todos }}</div><div style="color:var(--muted);font-size:12px;margin-top:6px">查看工作计划 →</div></section>
+    <section class="card clickable" onclick="location.href='/statistics'"><div style="color:var(--danger);font-size:24px">!</div><small>逾期待办</small><div class="metric" id="overdue-todos">—</div><div style="color:var(--muted);font-size:12px;margin-top:6px">查看风险概览 →</div></section>
 </div>
-<section class="card intro">
-    <h3>第一阶段目标</h3>
-    <p>先把案件、客户和待办三个核心对象跑通，再补充案件时间线、文书模板、风险提醒和数据看板。</p>
-    <p>当前服务状态：<a href="/health">查看健康检查</a>　<a href="/cases">进入案件管理</a></p>
-</section>
+
+<div class="dashboard-grid" style="display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:20px;margin-top:20px">
+    <div>
+        <section class="card" style="margin-bottom:20px"><div class="section-heading"><h3>近期待办</h3><button class="btn btn-accent" onclick="location.href='/todos'">＋ 添加待办</button></div><div id="upcoming-todos" style="margin-top:16px"><p style="color:var(--muted);text-align:center;padding:25px 0">正在加载待办事项…</p></div></section>
+        <section class="card"><div class="section-heading"><h3>文书模板</h3><button class="btn btn-outline" onclick="location.href='/templates'">查看全部</button></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:17px"><button class="btn btn-outline" onclick="location.href='/templates'">起诉状</button><button class="btn btn-outline" onclick="location.href='/templates'">答辩状</button><button class="btn btn-outline" onclick="location.href='/templates'">律师函</button></div></section>
+    </div>
+    <section class="card"><div class="section-heading"><button class="btn btn-outline" onclick="changeMonth(-1)">‹</button><h3 id="calendar-title">案件日历</h3><button class="btn btn-outline" onclick="changeMonth(1)">›</button></div><div id="calendar-grid" style="margin-top:16px"></div><div id="calendar-day-detail" hidden style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)"><strong id="detail-date-label"></strong><div id="detail-todo-list" style="margin-top:8px"></div></div></section>
+</div>
+<style>
+.todo-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}.todo-row:last-child{border-bottom:0}.todo-main{min-width:0}.todo-title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.todo-meta{font-size:12px;color:var(--muted);margin-top:4px}.todo-pill{font-size:11px;padding:4px 8px;border-radius:999px;white-space:nowrap}.pill-紧急{background:#fee2e2;color:#b91c1c}.pill-重要{background:#fef3c7;color:#92400e}.pill-普通{background:#eef2f6;color:#667085}.cal-table{width:100%;border-collapse:collapse;table-layout:fixed}.cal-table th{font-size:11px;color:var(--muted);padding:8px 0;font-weight:600}.cal-table td{height:49px;border:1px solid var(--line);text-align:center;vertical-align:top;position:relative;cursor:pointer}.cal-table td:hover{background:#f5f3ff}.cal-day{font-size:12px;line-height:30px}.cal-table td.other-month .cal-day{color:#c4c9d4}.cal-table td.today{background:#eef2ff}.cal-table td.today .cal-day{color:var(--primary-dark);font-weight:700}.cal-table td.has-todo::after{content:'';position:absolute;bottom:6px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--primary)}.cal-table td.has-urgent::after{background:var(--danger)}
+@media(max-width:900px){.dashboard-grid{grid-template-columns:1fr!important}}
+</style>
+{% endblock %}
+{% block extra_js %}
+<script>
+let currentYear=new Date().getFullYear(),currentMonth=new Date().getMonth(),allTodos=[];
+async function loadDashboard(){try{const stats=await(await fetch('/api/statistics')).json();document.getElementById('active-cases').textContent=(stats.cases_by_status.find(x=>x.label==='进行中')||{value:0}).value;document.getElementById('overdue-todos').textContent=stats.overdue_todos||0;const todos=await(await fetch('/api/todos')).json();allTodos=todos.filter(x=>x.status!=='已完成');renderUpcomingTodos();renderCalendar()}catch(e){console.error(e)}}
+function renderUpcomingTodos(){const box=document.getElementById('upcoming-todos');const items=allTodos.slice(0,5);if(!items.length){box.innerHTML='<p style="color:var(--muted);text-align:center;padding:25px 0">暂无待办事项</p>';return}box.innerHTML=items.map(x=>`<div class="todo-row"><div class="todo-main"><div class="todo-title">${escapeHtml(x.title)}</div><div class="todo-meta">${escapeHtml(x.case_name||'通用待办')} · ${x.deadline||'未设置截止日期'}</div></div><span class="todo-pill pill-${escapeHtml(x.priority)}">${escapeHtml(x.priority)}</span></div>`).join('')}
+function renderCalendar(){const first=new Date(currentYear,currentMonth,1),last=new Date(currentYear,currentMonth+1,0),start=first.getDay(),days=last.getDate(),today=new Date();let html='<table class="cal-table"><thead><tr>'+['日','一','二','三','四','五','六'].map(x=>`<th>${x}</th>`).join('')+'</tr></thead><tbody><tr>';for(let i=0;i<start;i++)html+='<td class="other-month"></td>';for(let day=1;day<=days;day++){const date=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`,has=allTodos.some(x=>x.deadline===date),urgent=allTodos.some(x=>x.deadline===date&&x.priority==='紧急'),isToday=today.getFullYear()===currentYear&&today.getMonth()===currentMonth&&today.getDate()===day;html+=`<td class="${has?'has-todo ':''}${urgent?'has-urgent ':''}${isToday?'today':''}" onclick="showDay('${date}')"><span class="cal-day">${day}</span></td>`;if((start+day)%7===0&&day!==days)html+='</tr><tr>'}let cells=(start+days)%7;if(cells)for(let i=cells;i<7;i++)html+='<td class="other-month"></td>';html+='</tr></tbody></table>';document.getElementById('calendar-title').textContent=`${currentYear}年${currentMonth+1}月`;document.getElementById('calendar-grid').innerHTML=html}
+function changeMonth(delta){currentMonth+=delta;if(currentMonth<0){currentMonth=11;currentYear--}if(currentMonth>11){currentMonth=0;currentYear++}renderCalendar()}
+function showDay(date){const items=allTodos.filter(x=>x.deadline===date),detail=document.getElementById('calendar-day-detail');detail.hidden=false;document.getElementById('detail-date-label').textContent=date;document.getElementById('detail-todo-list').innerHTML=items.length?items.map(x=>`<div class="todo-meta" style="padding:5px 0">${escapeHtml(x.title)} · ${escapeHtml(x.priority)}</div>`).join(''):'<div class="todo-meta">当天暂无待办</div>'}
+function escapeHtml(value){return String(value??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}loadDashboard();
+</script>
 {% endblock %}

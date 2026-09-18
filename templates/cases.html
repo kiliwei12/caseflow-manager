@@ -128,6 +128,8 @@ function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 }
 
+const initialStatus = new URLSearchParams(location.search).get('status');
+if (initialStatus) document.getElementById('status').value = initialStatus;
 loadClients().then(loadCases);
 </script>
 {% endblock %}
