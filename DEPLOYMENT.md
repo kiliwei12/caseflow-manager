@@ -27,6 +27,14 @@ docker run --rm -p 5066:5066 caseflow-manager
 
 当前 Demo 启动时会自动写入脱敏演示数据，适合作品集展示。免费实例重启或重新部署后，SQLite 数据可能被重置；不要在这个 Demo 中保存真实客户信息。
 
+## Vercel Demo 部署
+
+项目也包含 `vercel.json`，可以直接导入 GitHub 仓库 `kiliwei12/caseflow-manager`。Vercel 会识别根目录的 `app.py` Flask 实例，并将其部署为一个 Python Function。
+
+在 Vercel 中选择 **Add New → Project → Import Git Repository**，选择该仓库后直接点击 Deploy。部署完成后访问 `/health` 检查服务状态。
+
+Vercel Demo 使用临时目录生成脱敏演示数据，适合作品集预览；函数重启后数据可能恢复为初始演示数据。若需要持久化，应将 SQLite 替换为托管 PostgreSQL 或其他外部数据库。
+
 ## 上线注意事项
 
 - 生产环境应使用持久化磁盘保存 `data/caseflow.db`。

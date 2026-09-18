@@ -2,13 +2,14 @@ from pathlib import Path
 import sqlite3
 import csv
 import io
+import os
 from datetime import date, timedelta
 
 from flask import Flask, jsonify, render_template, request, send_file
 
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
+DATA_DIR = Path(os.environ.get("CASEFLOW_DATA_DIR", str(BASE_DIR / "data")))
 DB_PATH = DATA_DIR / "caseflow.db"
 
 app = Flask(__name__)
@@ -690,3 +691,11 @@ def health():
 if __name__ == "__main__":
     init_db()
     app.run(host="127.0.0.1", port=5066, debug=True)
+elif os.environ.get("VERCEL"):
+    # Vercel Demo 模式：使用临时目录并自动准备脱敏演示数据。
+    init_db()
+    with get_db() as db:
+        has_cases = db.execute("SELECT COUNT(*) FROM cases").fetchone()[0] > 0
+    if not has_cases:
+        from seed_demo import seed
+        seed()
