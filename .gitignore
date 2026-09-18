@@ -4,3 +4,7 @@ __pycache__/
 data/*.db
 data/*.db-*
 data/backups/
+
+# Private career materials: keep out of version control.
+RESUME_DRAFT.md
+INTERVIEW_GUIDE.md
