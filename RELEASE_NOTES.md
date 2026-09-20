@@ -1,11 +1,11 @@
-# CaseFlow v1.1.0
+# CaseFlow v1.1.1
 
-新增免 Python 的独立桌面安装版本。
+修正独立桌面版“本地安装”页面：现在准确显示 macOS 与 Windows 各自的数据库位置和新版下载地址。安装 v1.1.1 会替换旧版应用，但不会清除原有本地数据库。
 
 ## 下载
 
-- **macOS Apple Silicon**：`CaseFlow-macOS-Apple-Silicon-v1.1.0.dmg`
-- **Windows 10/11 x64**：`CaseFlow-Windows-Setup-v1.1.0.exe`
+- **macOS Apple Silicon**：`CaseFlow-macOS-Apple-Silicon-v1.1.1.dmg`
+- **Windows 10/11 x64**：`CaseFlow-Windows-Setup-v1.1.1.exe`
 
 ## 安装
 

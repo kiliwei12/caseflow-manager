@@ -1,5 +1,5 @@
 #define MyAppName "CaseFlow"
-#define MyAppVersion "1.1.0"
+#define MyAppVersion "1.1.1"
 #define MyAppPublisher "CaseFlow"
 #define MyAppExeName "CaseFlow.exe"
 
