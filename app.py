@@ -6,6 +6,7 @@ import os
 import re
 import secrets
 import time
+import threading
 from datetime import date, timedelta
 
 try:
@@ -25,6 +26,7 @@ DEMO_MODE = (
     or bool(os.environ.get("VERCEL"))
 )
 DEMO_DATA_TTL_HOURS = int(os.environ.get("CASEFLOW_DEMO_TTL_HOURS", "24"))
+DESKTOP_MODE = os.environ.get("CASEFLOW_DESKTOP_MODE") == "1"
 
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
@@ -205,6 +207,7 @@ def inject_runtime_mode():
     return {
         "demo_mode": DEMO_MODE,
         "demo_ttl_hours": DEMO_DATA_TTL_HOURS,
+        "desktop_mode": DESKTOP_MODE,
     }
 
 
@@ -804,6 +807,14 @@ def reset_demo_data():
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
     ensure_demo_database()
     return jsonify({"success": True, "message": "你的临时演示数据已重置"})
+
+
+@app.post("/api/desktop/shutdown")
+def shutdown_desktop_app():
+    if not DESKTOP_MODE or request.remote_addr not in {"127.0.0.1", "::1"}:
+        return jsonify({"error": "此操作仅适用于本地桌面版"}), 404
+    threading.Timer(0.6, lambda: os._exit(0)).start()
+    return jsonify({"success": True, "message": "CaseFlow 已退出"})
 
 
 if __name__ == "__main__":

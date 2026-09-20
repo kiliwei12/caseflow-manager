@@ -27,6 +27,8 @@
         nav a.active, nav a:hover { background:var(--primary-soft); color:var(--primary-pressed); transform:translateX(2px); }
         nav a.active .nav-icon { background:var(--primary); color:#fff; }
         .sidebar-footer { margin-top:auto; border-top:1px solid var(--line); padding:16px 8px 2px; color:var(--muted); font-size:11px; line-height:1.6; }
+        .desktop-quit { width:100%; margin-bottom:10px; border:1px solid var(--border); border-radius:8px; background:#fff; color:var(--ink); padding:7px 9px; font:inherit; font-size:11px; font-weight:700; cursor:pointer; }
+        .desktop-quit:hover { background:var(--coral); border-color:#e9a8a8; }
         main { padding:30px 42px 48px; max-width:1440px; width:100%; box-sizing:border-box; background:linear-gradient(135deg,#fff 0%,#fff 68%,#f9faff 100%); }
         .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
         .topbar h2 { font-family:"Arial Rounded MT Bold", "Noto Sans", sans-serif; margin:0; font-size:30px; font-weight:700; letter-spacing:-.055em; color:var(--ink); }
@@ -83,6 +85,7 @@
             <a class="{% if request.path.startswith('/install') %}active{% endif %}" href="/install" onclick="location.href='/install'"><span class="nav-icon">⇩</span><span>本地安装</span></a>
         </nav>
         <div class="sidebar-footer">
+            {% if desktop_mode %}<button class="desktop-quit" type="button" onclick="quitDesktopApp()">退出本地程序</button>{% endif %}
             {% if demo_mode %}🧪 独立临时演示环境{% else %}🔒 本地私有数据模式{% endif %}<br>
             CaseFlow Product Portfolio<br>案件全生命周期管理平台
         </div>
@@ -97,6 +100,16 @@ async function resetMyDemo() {
     const result = await response.json();
     if (!response.ok) return alert(result.error || '重置失败');
     location.href = '/';
+}
+</script>
+{% endif %}
+{% if desktop_mode %}
+<script>
+async function quitDesktopApp() {
+    if (!confirm('确定退出 CaseFlow 本地程序吗？已保存的数据不会丢失。')) return;
+    const response = await fetch('/api/desktop/shutdown', {method: 'POST'});
+    if (!response.ok) return alert('退出失败，请直接关闭 CaseFlow 程序。');
+    document.body.innerHTML = '<div style="font-family:sans-serif;padding:60px;text-align:center"><h2>CaseFlow 已退出</h2><p>现在可以关闭此浏览器标签页。</p></div>';
 }
 </script>
 {% endif %}

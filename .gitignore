@@ -8,3 +8,12 @@ data/backups/
 # Private career materials: keep out of version control.
 RESUME_DRAFT.md
 INTERVIEW_GUIDE.md
+
+# Desktop build outputs.
+.venv-build/
+build/
+dist/
+build_assets/*.png
+build_assets/*.ico
+build_assets/*.icns
+build_assets/CaseFlow.iconset/

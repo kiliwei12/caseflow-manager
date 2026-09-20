@@ -19,12 +19,12 @@
 
 ## 本地安装
 
-从 [GitHub Releases](https://github.com/kiliwei12/caseflow-manager/releases/latest) 下载对应系统的安装包：
+从 [CaseFlow v1.1.0 Release](https://github.com/kiliwei12/caseflow-manager/releases/tag/v1.1.0) 下载免 Python 的独立安装包：
 
-- [下载 macOS 安装包](https://github.com/kiliwei12/caseflow-manager/releases/latest/download/CaseFlow-macOS-v1.0.0.zip)
-- [下载 Windows 安装包](https://github.com/kiliwei12/caseflow-manager/releases/latest/download/CaseFlow-Windows-v1.0.0.zip)
+- [下载 macOS Apple Silicon DMG](https://github.com/kiliwei12/caseflow-manager/releases/download/v1.1.0/CaseFlow-macOS-Apple-Silicon-v1.1.0.dmg)
+- [下载 Windows 安装程序](https://github.com/kiliwei12/caseflow-manager/releases/download/v1.1.0/CaseFlow-Windows-Setup-v1.1.0.exe)
 
-解压后运行：
+独立安装包无需预装 Python。源码运行方式仍保留：
 
 - macOS：双击 `CaseFlow.command`
 - Windows：双击 `CaseFlow.bat`

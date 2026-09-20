@@ -1,18 +1,33 @@
-# CaseFlow v1.0.0
+# CaseFlow v1.1.0
 
-首个本地私有安装版本。
+新增免 Python 的独立桌面安装版本。
 
 ## 下载
 
-- macOS：下载 `CaseFlow-macOS-v1.0.0.zip`，解压后双击 `CaseFlow.command`。
-- Windows：下载 `CaseFlow-Windows-v1.0.0.zip`，解压后双击 `CaseFlow.bat`。
+- **macOS Apple Silicon**：`CaseFlow-macOS-Apple-Silicon-v1.1.0.dmg`
+- **Windows 10/11 x64**：`CaseFlow-Windows-Setup-v1.1.0.exe`
 
-## 环境要求
+## 安装
 
-- Python 3.9 或更高版本
-- 首次安装依赖时需要网络连接
+### macOS
+
+1. 打开 DMG。
+2. 将 `CaseFlow.app` 拖入 Applications。
+3. 首次启动如果出现开发者验证提示，请右键应用并选择“打开”，或在“系统设置 → 隐私与安全性”中允许打开。
+
+### Windows
+
+1. 双击 Setup EXE。
+2. 按安装向导完成安装。
+3. 从开始菜单或桌面快捷方式启动 CaseFlow。
 
 ## 数据与隐私
 
-本地版数据保存在 `CaseFlow/data/caseflow.db`，不会发送到 CaseFlow 云端。请定期备份 `data` 文件夹，不要将真实案件数据库上传到 GitHub。
+- macOS 数据：`~/Library/Application Support/CaseFlow/caseflow.db`
+- Windows 数据：`%APPDATA%\CaseFlow\caseflow.db`
+- 数据仅保存在当前电脑中，不发送到 CaseFlow 云端。
+- 升级或重新安装应用不会覆盖数据库，仍建议定期备份。
 
+## 说明
+
+macOS DMG 使用临时本地签名，尚未进行 Apple Developer ID 公证。Windows 安装包尚未购买代码签名证书，因此系统可能显示未知发布者提示。

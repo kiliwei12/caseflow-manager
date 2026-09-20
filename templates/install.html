@@ -3,7 +3,7 @@
 {% block content %}
 <div class="topbar">
     <div><h2>本地私有安装</h2><div class="topbar-subtitle">真实案件数据仅保存在你的电脑中</div></div>
-    <a class="btn btn-accent" href="https://github.com/kiliwei12/caseflow-manager/releases/latest">查看最新 Release</a>
+    <a class="btn btn-accent" href="https://github.com/kiliwei12/caseflow-manager/releases/tag/v1.1.0">查看桌面版 Release</a>
 </div>
 
 <section class="install-hero">
@@ -17,24 +17,24 @@
 
 <div class="install-grid">
     <section class="card">
-        <div class="platform">macOS / Linux</div>
-        <ol><li>下载并解压项目 ZIP</li><li>双击 <code>CaseFlow.command</code></li><li>首次运行会自动完成安装</li></ol>
-        <pre><code>bash install_local.sh
-bash start_local.sh</code></pre>
-        <a class="btn btn-accent" href="https://github.com/kiliwei12/caseflow-manager/releases/latest/download/CaseFlow-macOS-v1.0.0.zip">下载 macOS 安装包</a>
+        <div class="platform">macOS Apple Silicon</div>
+        <ol><li>下载并打开 DMG</li><li>将 CaseFlow 拖入 Applications</li><li>双击 CaseFlow 启动</li></ol>
+        <pre><code>无需安装 Python
+数据保存在 ~/Library/Application Support/CaseFlow</code></pre>
+        <a class="btn btn-accent" href="https://github.com/kiliwei12/caseflow-manager/releases/download/v1.1.0/CaseFlow-macOS-Apple-Silicon-v1.1.0.dmg">下载 macOS DMG</a>
     </section>
     <section class="card">
         <div class="platform">Windows</div>
-        <ol><li>下载并解压项目 ZIP</li><li>双击 <code>CaseFlow.bat</code></li><li>首次运行会自动完成安装</li></ol>
-        <pre><code>powershell -ExecutionPolicy Bypass -File install_local.ps1
-powershell -ExecutionPolicy Bypass -File start_local.ps1</code></pre>
-        <a class="btn btn-accent" href="https://github.com/kiliwei12/caseflow-manager/releases/latest/download/CaseFlow-Windows-v1.0.0.zip">下载 Windows 安装包</a>
+        <ol><li>下载 Setup EXE</li><li>双击并按安装向导操作</li><li>从开始菜单启动 CaseFlow</li></ol>
+        <pre><code>无需安装 Python
+数据保存在 %APPDATA%\CaseFlow</code></pre>
+        <a class="btn btn-accent" href="https://github.com/kiliwei12/caseflow-manager/releases/download/v1.1.0/CaseFlow-Windows-Setup-v1.1.0.exe">下载 Windows 安装程序</a>
     </section>
 </div>
 
 <section class="card notes">
     <h3>使用说明</h3>
-    <ul><li>需要 Python 3.9 或更高版本。</li><li>启动后浏览器访问电脑本机的 CaseFlow 页面。</li><li>不要将包含真实资料的 <code>data/</code> 文件夹上传到 GitHub。</li><li>关闭终端中的服务不会删除数据，下次启动仍会保留。</li></ul>
+    <ul><li>桌面安装包不需要预装 Python。</li><li>应用启动后会自动在默认浏览器打开本地 CaseFlow 页面。</li><li>数据保存在系统用户数据目录，升级应用不会覆盖。</li><li>首次运行可能出现未签名开发者提示，请在确认下载来源后允许打开。</li></ul>
 </section>
 <style>
 .install-hero{display:grid;grid-template-columns:1.4fr .8fr;gap:20px;padding:28px;border-radius:22px;background:var(--teal);margin-bottom:20px}.install-hero h3{font-size:26px;margin:14px 0 10px}.install-hero p{max-width:720px;line-height:1.75;margin:0}.install-badge{display:inline-block;background:#fff;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800}.privacy-card{display:flex;flex-direction:column;gap:12px;background:#fff;border-radius:16px;padding:20px;box-shadow:var(--ring)}.privacy-card code{white-space:nowrap;overflow-x:auto;background:#f5f6f8;padding:9px;border-radius:8px}.privacy-card small{color:var(--muted)}.install-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}.platform{font-size:20px;font-weight:800}.install-grid li,.notes li{margin:9px 0;line-height:1.6}.install-grid pre{background:#1c1c1e;color:#fff;border-radius:12px;padding:16px;overflow:auto}.notes h3{margin-top:0}@media(max-width:800px){.install-hero,.install-grid{grid-template-columns:1fr}}
