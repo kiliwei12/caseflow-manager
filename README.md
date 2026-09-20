@@ -19,7 +19,12 @@
 
 ## 本地安装
 
-下载项目后运行：
+从 [GitHub Releases](https://github.com/kiliwei12/caseflow-manager/releases/latest) 下载对应系统的安装包：
+
+- [下载 macOS 安装包](https://github.com/kiliwei12/caseflow-manager/releases/latest/download/CaseFlow-macOS-v1.0.0.zip)
+- [下载 Windows 安装包](https://github.com/kiliwei12/caseflow-manager/releases/latest/download/CaseFlow-Windows-v1.0.0.zip)
+
+解压后运行：
 
 - macOS：双击 `CaseFlow.command`
 - Windows：双击 `CaseFlow.bat`
