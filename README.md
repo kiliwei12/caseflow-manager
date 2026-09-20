@@ -14,17 +14,6 @@
 - 案件详情：查看案件基础信息及关联待办
 - 本地 SQLite 数据存储
 
-## 本地运行
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python app.py
-```
-
-打开 <http://127.0.0.1:5066>。
-
 ## 作品集演示数据
 
 首次启动后，可写入脱敏的演示客户、案件、待办、时间线、客户跟进和操作日志：

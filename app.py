@@ -690,7 +690,7 @@ def health():
 
 if __name__ == "__main__":
     init_db()
-    app.run(host="127.0.0.1", port=5066, debug=True)
+    app.run(host="127.0.0.1", port=8080, debug=True)
 elif os.environ.get("VERCEL"):
     # Vercel Demo 模式：使用临时目录并自动准备脱敏演示数据。
     init_db()
