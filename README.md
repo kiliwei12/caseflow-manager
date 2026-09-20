@@ -21,10 +21,10 @@
 
 ## 本地安装
 
-从 [CaseFlow v1.1.1 Release](https://github.com/kiliwei12/caseflow-manager/releases/tag/v1.1.1) 下载免 Python 的独立安装包：
+从 [CaseFlow v1.2.0 Release](https://github.com/kiliwei12/caseflow-manager/releases/tag/v1.2.0) 下载免 Python 的独立安装包：
 
-- **macOS Apple Silicon（M 系列芯片）**：[下载 DMG 安装包](https://github.com/kiliwei12/caseflow-manager/releases/download/v1.1.1/CaseFlow-macOS-Apple-Silicon-v1.1.1.dmg)，打开后拖入“应用程序”。
-- **Windows 10/11 x64**：[下载 Setup.exe 安装程序](https://github.com/kiliwei12/caseflow-manager/releases/download/v1.1.1/CaseFlow-Windows-Setup-v1.1.1.exe)，双击后按向导安装。
+- **macOS Apple Silicon（M 系列芯片）**：[下载 DMG 安装包](https://github.com/kiliwei12/caseflow-manager/releases/download/v1.2.0/CaseFlow-macOS-Apple-Silicon-v1.2.0.dmg)，打开后拖入“应用程序”。
+- **Windows 10/11 x64**：[下载 Setup.exe 安装程序](https://github.com/kiliwei12/caseflow-manager/releases/download/v1.2.0/CaseFlow-Windows-Setup-v1.2.0.exe)，双击后按向导安装。
 
 独立安装包无需预装 Python。本地数据分别保存在 macOS 的 `~/Library/Application Support/CaseFlow/` 和 Windows 的 `%APPDATA%\CaseFlow\`。
 

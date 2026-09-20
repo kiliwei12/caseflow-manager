@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-VERSION="${CASEFLOW_VERSION:-1.1.1}"
+VERSION="${CASEFLOW_VERSION:-1.2.0}"
 BUILD_PYTHON="${BUILD_PYTHON:-python3}"
 
 if [ "$(uname -s)" != "Darwin" ]; then
