@@ -6,3 +6,12 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
     autoDeploy: true
+    envVars:
+      - key: CASEFLOW_DEMO_MODE
+        value: "1"
+      - key: CASEFLOW_DATA_DIR
+        value: /tmp/caseflow-demo
+      - key: CASEFLOW_DEMO_TTL_HOURS
+        value: "24"
+      - key: SECRET_KEY
+        generateValue: true

@@ -3,17 +3,36 @@ import sqlite3
 import csv
 import io
 import os
+import re
+import secrets
+import time
 from datetime import date, timedelta
 
-from flask import Flask, jsonify, render_template, request, send_file
+try:
+    import fcntl
+except ImportError:  # Windows 本地版不需要跨进程演示数据库锁。
+    fcntl = None
+
+from flask import Flask, jsonify, render_template, request, send_file, session, redirect, url_for, has_request_context
 
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = Path(os.environ.get("CASEFLOW_DATA_DIR", str(BASE_DIR / "data")))
 DB_PATH = DATA_DIR / "caseflow.db"
+DEMO_MODE = (
+    os.environ.get("CASEFLOW_DEMO_MODE") == "1"
+    or os.environ.get("RENDER", "").lower() == "true"
+    or bool(os.environ.get("VERCEL"))
+)
+DEMO_DATA_TTL_HOURS = int(os.environ.get("CASEFLOW_DEMO_TTL_HOURS", "24"))
 
 app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
+app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
+app.permanent_session_lifetime = timedelta(days=7)
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = DEMO_MODE
 
 CASE_STATUSES = [
     "一审进行中", "一审已结案", "二审进行中", "二审已结案",
@@ -21,10 +40,30 @@ CASE_STATUSES = [
 ]
 
 
+def visitor_id():
+    """返回当前访客的匿名标识；仅在云端演示模式启用。"""
+    if not DEMO_MODE or not has_request_context():
+        return None
+    value = session.get("caseflow_visitor_id", "")
+    if not re.fullmatch(r"[a-f0-9]{32}", value):
+        value = secrets.token_hex(16)
+        session["caseflow_visitor_id"] = value
+    session.permanent = True
+    return value
+
+
+def current_db_path():
+    if DEMO_MODE and has_request_context():
+        return DATA_DIR / "visitors" / f"{visitor_id()}.db"
+    return DB_PATH
+
+
 def get_db():
-    DATA_DIR.mkdir(exist_ok=True)
-    connection = sqlite3.connect(DB_PATH)
+    db_path = current_db_path()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(db_path, timeout=15)
     connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA foreign_keys = ON")
     return connection
 
 
@@ -115,6 +154,58 @@ def init_db():
         }.items():
             if column not in existing_columns:
                 db.execute(f"ALTER TABLE cases ADD COLUMN {column} {definition}")
+
+
+def cleanup_stale_demo_databases():
+    """清理超过有效期的匿名演示数据库，避免临时文件无限增长。"""
+    visitor_dir = DATA_DIR / "visitors"
+    if not visitor_dir.exists():
+        return
+    cutoff = time.time() - DEMO_DATA_TTL_HOURS * 3600
+    for path in visitor_dir.glob("*.db"):
+        try:
+            if path.stat().st_mtime < cutoff:
+                for related in (path, Path(f"{path}-wal"), Path(f"{path}-shm"), path.with_suffix(".lock")):
+                    if related.exists():
+                        related.unlink()
+        except OSError:
+            continue
+
+
+def ensure_demo_database():
+    """为当前匿名访客创建并初始化独立的临时数据库。"""
+    if not DEMO_MODE or not has_request_context():
+        return
+    db_path = current_db_path()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path = db_path.with_suffix(".lock")
+    with lock_path.open("a+") as lock_file:
+        if fcntl:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        init_db()
+        with get_db() as db:
+            if db.execute("SELECT COUNT(*) FROM cases").fetchone()[0] == 0:
+                from seed_demo import seed_connection
+                seed_connection(db)
+        db_path.touch(exist_ok=True)
+        if fcntl:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+    if secrets.randbelow(50) == 0:
+        cleanup_stale_demo_databases()
+
+
+@app.before_request
+def prepare_request_database():
+    if DEMO_MODE and request.endpoint not in {"health", "static"}:
+        ensure_demo_database()
+
+
+@app.context_processor
+def inject_runtime_mode():
+    return {
+        "demo_mode": DEMO_MODE,
+        "demo_ttl_hours": DEMO_DATA_TTL_HOURS,
+    }
 
 
 def log_activity(entity_type, entity_id, action, detail):
@@ -250,6 +341,11 @@ def activity_log_page():
 @app.get("/templates")
 def templates_page():
     return render_template("templates.html")
+
+
+@app.get("/install")
+def install_page():
+    return render_template("install.html")
 
 
 @app.get("/api/statistics")
@@ -685,17 +781,31 @@ def delete_case(case_id):
 
 @app.get("/health")
 def health():
-    return jsonify({"status": "ok", "service": "caseflow-manager"})
+    return jsonify({
+        "status": "ok",
+        "service": "caseflow-manager",
+        "mode": "isolated-demo" if DEMO_MODE else "local-private",
+    })
+
+
+@app.post("/api/demo/reset")
+def reset_demo_data():
+    if not DEMO_MODE:
+        return jsonify({"error": "本地私有模式不支持演示数据重置"}), 404
+    db_path = current_db_path()
+    lock_path = db_path.with_suffix(".lock")
+    with lock_path.open("a+") as lock_file:
+        if fcntl:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        for related in (db_path, Path(f"{db_path}-wal"), Path(f"{db_path}-shm")):
+            if related.exists():
+                related.unlink()
+        if fcntl:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+    ensure_demo_database()
+    return jsonify({"success": True, "message": "你的临时演示数据已重置"})
 
 
 if __name__ == "__main__":
     init_db()
     app.run(host="127.0.0.1", port=8080, debug=True)
-elif os.environ.get("VERCEL"):
-    # Vercel Demo 模式：使用临时目录并自动准备脱敏演示数据。
-    init_db()
-    with get_db() as db:
-        has_cases = db.execute("SELECT COUNT(*) FROM cases").fetchone()[0] > 0
-    if not has_cases:
-        from seed_demo import seed
-        seed()

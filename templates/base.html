@@ -52,12 +52,22 @@
         .btn-accent { background:var(--primary); color:#fff; box-shadow:none; }.btn-accent:hover{background:var(--primary-pressed)}
         .btn-outline { background:#fff; color:var(--ink); border-color:var(--border); }.btn-outline:hover{background:var(--primary-soft);border-color:var(--primary)}
         .btn-ghost { background:transparent; color:var(--ink); }
+        .demo-banner { display:flex; align-items:center; justify-content:center; gap:12px; min-height:42px; padding:8px 18px; background:var(--yellow); color:var(--ink); box-shadow:inset 0 -1px 0 #e5d57a; font-size:13px; }
+        .demo-banner strong { font-weight:800; }
+        .demo-banner button { border:1px solid #9c8b31; border-radius:8px; background:#fff; color:var(--ink); padding:6px 10px; font:inherit; font-weight:700; cursor:pointer; }
+        .demo-banner button:hover { background:#fff9d4; }
         @media (max-width: 920px) { .cards { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } aside { padding: 18px; } nav { display: flex; flex-direction:row; gap: 6px; overflow-x: auto; } nav a { white-space: nowrap; } .sidebar-footer { display:none; } main { padding: 24px 18px; } .cards { grid-template-columns: 1fr 1fr; } .topbar { align-items:flex-start; gap:14px; } }
         @media (max-width: 480px) { .cards { grid-template-columns: 1fr; } .topbar { flex-direction:column; } }
     </style>
 </head>
 <body>
+{% if demo_mode %}
+<div class="demo-banner">
+    <span><strong>独立临时 Demo</strong>：当前浏览器拥有单独的演示数据，{{ demo_ttl_hours }} 小时后可能自动清理。请勿录入真实案件资料。</span>
+    <button type="button" onclick="resetMyDemo()">重置我的数据</button>
+</div>
+{% endif %}
 <div class="layout">
     <aside>
         <h1><span class="brand-mark">C</span>CaseFlow</h1>
@@ -70,11 +80,26 @@
             <a class="{% if request.path.startswith('/templates') %}active{% endif %}" href="/templates" onclick="location.href='/templates'"><span class="nav-icon">▤</span><span>文书模板</span></a>
             <a class="{% if request.path.startswith('/statistics') %}active{% endif %}" href="/statistics" onclick="location.href='/statistics'"><span class="nav-icon">▥</span><span>数据统计</span></a>
             <a class="{% if request.path.startswith('/activity-log') %}active{% endif %}" href="/activity-log" onclick="location.href='/activity-log'"><span class="nav-icon">◷</span><span>操作日志</span></a>
+            <a class="{% if request.path.startswith('/install') %}active{% endif %}" href="/install" onclick="location.href='/install'"><span class="nav-icon">⇩</span><span>本地安装</span></a>
         </nav>
-        <div class="sidebar-footer">🔒 数据不上云 · 隐私优先<br>CaseFlow Product Portfolio<br>案件全生命周期管理平台</div>
+        <div class="sidebar-footer">
+            {% if demo_mode %}🧪 独立临时演示环境{% else %}🔒 本地私有数据模式{% endif %}<br>
+            CaseFlow Product Portfolio<br>案件全生命周期管理平台
+        </div>
     </aside>
     <main>{% block content %}{% endblock %}</main>
 </div>
+{% if demo_mode %}
+<script>
+async function resetMyDemo() {
+    if (!confirm('确定重置当前浏览器的演示数据吗？你在 Demo 中做的修改将被清除。')) return;
+    const response = await fetch('/api/demo/reset', {method: 'POST'});
+    const result = await response.json();
+    if (!response.ok) return alert(result.error || '重置失败');
+    location.href = '/';
+}
+</script>
+{% endif %}
 {% block extra_js %}{% endblock %}
 </body>
 </html>
