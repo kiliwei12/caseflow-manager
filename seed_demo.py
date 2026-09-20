@@ -97,6 +97,22 @@ def seed_connection(db):
             ("案件", case_c, "标记结案", "调解完成并归档"),
         ],
     )
+    db.executemany(
+        "INSERT INTO work_records (case_id, work_date, category, content, hours) VALUES (?, ?, ?, ?, ?)",
+        [
+            (case_a, "2026-09-18", "起草", "整理庭审提纲与争议焦点", 2.5),
+            (case_a, "2026-09-19", "沟通", "与客户确认证据原件及出庭安排", 1.0),
+            (case_b, "2026-09-17", "调研", "检索商标混淆可能性相关裁判规则", 3.0),
+        ],
+    )
+    db.executemany(
+        """INSERT INTO document_templates
+           (name, category, description, content) VALUES (?, ?, ?, ?)""",
+        [
+            ("民事起诉状基础模板", "起诉状", "适用于一般合同及侵权纠纷，可替换花括号中的字段。", "原告：{原告名称}\n被告：{被告名称}\n\n诉讼请求：\n{诉讼请求}\n\n事实与理由：\n{事实与理由}\n\n此致\n{受理法院}"),
+            ("客户沟通纪要", "备忘录", "用于会谈后快速沉淀事实、结论和下一步行动。", "会议日期：{日期}\n参与人员：{参与人员}\n\n核心事实：\n{核心事实}\n\n达成结论：\n{结论}\n\n下一步行动：\n{下一步行动}"),
+        ],
+    )
     return True
 
 

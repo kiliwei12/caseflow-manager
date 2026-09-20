@@ -7,6 +7,7 @@ import re
 import secrets
 import time
 import threading
+import base64
 from datetime import date, timedelta
 
 try:
@@ -128,6 +129,30 @@ def init_db():
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
                 FOREIGN KEY (case_id) REFERENCES cases(id) ON DELETE SET NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS work_records (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                case_id INTEGER NOT NULL,
+                work_date TEXT NOT NULL,
+                category TEXT NOT NULL,
+                content TEXT NOT NULL,
+                hours REAL NOT NULL CHECK (hours > 0 AND hours <= 24),
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (case_id) REFERENCES cases(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS document_templates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                category TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                content TEXT DEFAULT '',
+                file_name TEXT,
+                file_mime TEXT,
+                file_data BLOB,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
 
             CREATE TABLE IF NOT EXISTS activity_logs (
@@ -293,6 +318,79 @@ def list_timeline(case_id):
     return jsonify([dict(row) for row in rows])
 
 
+def parse_work_record(payload):
+    work_date = str(payload.get("work_date") or "").strip()
+    category = str(payload.get("category") or "").strip()
+    content = str(payload.get("content") or "").strip()
+    try:
+        date.fromisoformat(work_date)
+        hours = float(payload.get("hours"))
+    except (TypeError, ValueError):
+        return None
+    if not category or not content or not 0 < hours <= 24:
+        return None
+    return work_date, category, content, hours
+
+
+@app.get("/api/cases/<int:case_id>/work-records")
+def list_work_records(case_id):
+    with get_db() as db:
+        if not db.execute("SELECT id FROM cases WHERE id = ?", (case_id,)).fetchone():
+            return jsonify({"error": "案件不存在"}), 404
+        rows = db.execute(
+            "SELECT * FROM work_records WHERE case_id = ? ORDER BY work_date DESC, id DESC", (case_id,)
+        ).fetchall()
+        total = db.execute(
+            "SELECT COALESCE(SUM(hours), 0) FROM work_records WHERE case_id = ?", (case_id,)
+        ).fetchone()[0]
+    return jsonify({"records": [dict(row) for row in rows], "total_hours": round(total, 2)})
+
+
+@app.post("/api/cases/<int:case_id>/work-records")
+def create_work_record(case_id):
+    values = parse_work_record(request.get_json(silent=True) or {})
+    if values is None:
+        return jsonify({"error": "请填写有效的日期、类别、内容和 0–24 小时工时"}), 400
+    with get_db() as db:
+        if not db.execute("SELECT id FROM cases WHERE id = ?", (case_id,)).fetchone():
+            return jsonify({"error": "案件不存在"}), 404
+        record_id = db.execute(
+            "INSERT INTO work_records (case_id, work_date, category, content, hours) VALUES (?, ?, ?, ?, ?)",
+            (case_id, *values),
+        ).lastrowid
+    log_activity("工作记录", record_id, "添加工作记录", values[2])
+    return jsonify({"id": record_id}), 201
+
+
+@app.put("/api/cases/<int:case_id>/work-records/<int:record_id>")
+def update_work_record(case_id, record_id):
+    values = parse_work_record(request.get_json(silent=True) or {})
+    if values is None:
+        return jsonify({"error": "请填写有效的日期、类别、内容和 0–24 小时工时"}), 400
+    with get_db() as db:
+        result = db.execute(
+            "UPDATE work_records SET work_date = ?, category = ?, content = ?, hours = ? WHERE id = ? AND case_id = ?",
+            (*values, record_id, case_id),
+        )
+        if not result.rowcount:
+            return jsonify({"error": "工作记录不存在"}), 404
+    log_activity("工作记录", record_id, "编辑工作记录", values[2])
+    return jsonify({"success": True})
+
+
+@app.delete("/api/cases/<int:case_id>/work-records/<int:record_id>")
+def delete_work_record(case_id, record_id):
+    with get_db() as db:
+        record = db.execute(
+            "SELECT content FROM work_records WHERE id = ? AND case_id = ?", (record_id, case_id)
+        ).fetchone()
+        if record is None:
+            return jsonify({"error": "工作记录不存在"}), 404
+        db.execute("DELETE FROM work_records WHERE id = ? AND case_id = ?", (record_id, case_id))
+    log_activity("工作记录", record_id, "删除工作记录", record["content"])
+    return jsonify({"success": True})
+
+
 @app.post("/api/cases/<int:case_id>/timeline")
 def create_timeline(case_id):
     payload = request.get_json(silent=True) or {}
@@ -344,6 +442,131 @@ def activity_log_page():
 @app.get("/templates")
 def templates_page():
     return render_template("templates.html")
+
+
+def parse_template_payload(payload):
+    name = str(payload.get("name") or "").strip()
+    category = str(payload.get("category") or "").strip()
+    description = str(payload.get("description") or "").strip()
+    content = str(payload.get("content") or "").strip()
+    file_name = str(payload.get("file_name") or "").strip() or None
+    file_mime = str(payload.get("file_mime") or "").strip() or None
+    file_data = payload.get("file_data")
+    decoded = None
+    if not name or not category:
+        return None, "请填写模板名称和分类"
+    if file_data:
+        try:
+            decoded = base64.b64decode(file_data, validate=True)
+        except (ValueError, TypeError):
+            return None, "模板文件内容无效"
+        if len(decoded) > 2 * 1024 * 1024:
+            return None, "模板文件不能超过 2MB"
+        if file_mime not in {
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        }:
+            return None, "仅支持 PDF 或 DOCX 文件"
+    return (name, category, description, content, file_name, file_mime, decoded), None
+
+
+@app.get("/api/templates")
+def list_templates():
+    category = request.args.get("category", "").strip()
+    query = "SELECT id, name, category, description, content, file_name, file_mime, created_at, updated_at FROM document_templates"
+    params = []
+    if category:
+        query += " WHERE category = ?"
+        params.append(category)
+    query += " ORDER BY updated_at DESC, id DESC"
+    with get_db() as db:
+        rows = db.execute(query, params).fetchall()
+    return jsonify([dict(row) for row in rows])
+
+
+@app.post("/api/templates")
+def create_template():
+    values, error = parse_template_payload(request.get_json(silent=True) or {})
+    if error:
+        return jsonify({"error": error}), 400
+    with get_db() as db:
+        template_id = db.execute(
+            """INSERT INTO document_templates
+               (name, category, description, content, file_name, file_mime, file_data)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            values,
+        ).lastrowid
+    log_activity("文书模板", template_id, "创建模板", values[0])
+    return jsonify({"id": template_id}), 201
+
+
+@app.put("/api/templates/<int:template_id>")
+def update_template(template_id):
+    payload = request.get_json(silent=True) or {}
+    values, error = parse_template_payload(payload)
+    if error:
+        return jsonify({"error": error}), 400
+    with get_db() as db:
+        current = db.execute("SELECT file_name, file_mime, file_data FROM document_templates WHERE id = ?", (template_id,)).fetchone()
+        if current is None:
+            return jsonify({"error": "模板不存在"}), 404
+        name, category, description, content, file_name, file_mime, file_data = values
+        if file_data is None and not payload.get("remove_file"):
+            file_name, file_mime, file_data = current["file_name"], current["file_mime"], current["file_data"]
+        db.execute(
+            """UPDATE document_templates SET name = ?, category = ?, description = ?, content = ?,
+               file_name = ?, file_mime = ?, file_data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?""",
+            (name, category, description, content, file_name, file_mime, file_data, template_id),
+        )
+    log_activity("文书模板", template_id, "编辑模板", name)
+    return jsonify({"success": True})
+
+
+@app.delete("/api/templates/<int:template_id>")
+def delete_template(template_id):
+    with get_db() as db:
+        template = db.execute("SELECT name FROM document_templates WHERE id = ?", (template_id,)).fetchone()
+        if template is None:
+            return jsonify({"error": "模板不存在"}), 404
+        db.execute("DELETE FROM document_templates WHERE id = ?", (template_id,))
+    log_activity("文书模板", template_id, "删除模板", template["name"])
+    return jsonify({"success": True})
+
+
+@app.post("/api/templates/batch-delete")
+def batch_delete_templates():
+    ids = request.get_json(silent=True) or {}
+    ids = ids.get("ids", [])
+    if not isinstance(ids, list) or not ids or any(not isinstance(value, int) for value in ids):
+        return jsonify({"error": "请选择要删除的模板"}), 400
+    placeholders = ",".join("?" for _ in ids)
+    with get_db() as db:
+        rows = db.execute(f"SELECT id, name FROM document_templates WHERE id IN ({placeholders})", ids).fetchall()
+        db.execute(f"DELETE FROM document_templates WHERE id IN ({placeholders})", ids)
+    log_activity("文书模板", None, "批量删除模板", "、".join(row["name"] for row in rows))
+    return jsonify({"success": True, "deleted": len(rows)})
+
+
+@app.get("/api/templates/<int:template_id>/download")
+def download_template(template_id):
+    with get_db() as db:
+        template = db.execute("SELECT * FROM document_templates WHERE id = ?", (template_id,)).fetchone()
+    if template is None:
+        return jsonify({"error": "模板不存在"}), 404
+    if template["file_data"]:
+        return send_file(
+            io.BytesIO(template["file_data"]),
+            mimetype=template["file_mime"] or "application/octet-stream",
+            as_attachment=True,
+            download_name=template["file_name"] or f"{template['name']}.bin",
+        )
+    text = template["content"] or template["description"] or template["name"]
+    return send_file(
+        io.BytesIO(text.encode("utf-8")),
+        mimetype="text/plain; charset=utf-8",
+        as_attachment=True,
+        download_name=f"{template['name']}.txt",
+    )
 
 
 @app.get("/install")
